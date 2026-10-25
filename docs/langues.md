@@ -8,7 +8,7 @@ Tous les textes de l'interface viennent de catalogues de traduction. Le françai
 - **Dans l'application** : à l'étape Préférences de la Configuration, ou avec la commande `/lang en` (sans argument, elle liste les langues).
 - **Depuis le code** : `c.SetLocale("en")` dans une commande.
 
-Le changement est immédiat, sans redémarrage. Les messages déjà échangés restent dans leur langue d'origine : ce sont des contenus, pas des textes d'interface. `Config.OnLocale` est appelé après chaque changement, par exemple pour mémoriser le choix.
+Le changement est immédiat, sans redémarrage. Les messages déjà échangés restent dans leur langue d'origine : ce sont des contenus, pas des textes d'interface. `Config.OnLocale` est appelé après chaque changement, par exemple pour mémoriser le choix ; `Config.OnSettings` aussi, avec tous les réglages (voir [Mémoriser les réglages](personnalisation.md#mémoriser-les-réglages)).
 
 ## Traduire vos textes
 

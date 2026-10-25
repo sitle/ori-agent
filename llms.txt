@@ -2,7 +2,7 @@
 
 > Go framework (Gio) that provides a complete desktop application shell for agent clients, in the style of the Claude Code desktop "work" view: custom title bar, sidebar tree of projects, sessions and subagents, chat transcript with streamed text and reasoning, tool calls and task lists, slash-command palette, attachments, voice dictation, document preview (Markdown, code, PDF, images), setup and profile pages, French and English UI. The app author writes an Agent (`Run(ctx, *Turn) error`) and configures everything else with one `oriagent.Config`. Module `github.com/sitle/ori-agent`, Go 1.26+, licence EUPL-1.2.
 
-Key facts: call `oriagent.Run(cfg)` once from `main` (it blocks); agents write only through `*oriagent.Turn` methods (goroutine-safe) and must honor `ctx` cancellation; `*oriagent.Ctl` is only valid inside `Command.Run`; UI texts can be translation keys resolved through `Config.Translations`.
+Key facts: call `oriagent.Run(cfg)` once from `main` (it blocks); agents write only through `*oriagent.Turn` methods (goroutine-safe) and must honor `ctx` cancellation; `*oriagent.Ctl` is only valid inside `Command.Run`; ori-agent persists nothing: restore the Configuration page values with `Config.Settings` and save them from `Config.OnSettings`; UI texts can be translation keys resolved through `Config.Translations`.
 
 ## Guides for coding agents
 
@@ -14,7 +14,7 @@ Key facts: call `oriagent.Run(cfg)` once from `main` (it blocks); agents write o
 - [Minimal app](https://raw.githubusercontent.com/sitle/ori-agent/main/examples/minimal/main.go): an echo agent in about forty lines
 - [Full demo](https://raw.githubusercontent.com/sitle/ori-agent/main/examples/anna/main.go): configuration with simulated agent, models, profile, translations
 - [Demo data and custom page](https://raw.githubusercontent.com/sitle/ori-agent/main/examples/anna/demo.go): projects, transcripts, a translated sidebar page
-- [Compiled API examples](https://raw.githubusercontent.com/sitle/ori-agent/main/example_test.go): agent, subagent, command, page, demo data
+- [Compiled API examples](https://raw.githubusercontent.com/sitle/ori-agent/main/example_test.go): agent, subagent, command, page, settings persistence, demo data
 
 ## API
 

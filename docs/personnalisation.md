@@ -27,6 +27,40 @@ Les textes peuvent être des clés de traduction (voir [Langues](langues.md)).
 | `Models` | Les modèles proposés dans la Configuration, par `/model` et dans la barre de titre. `Desc` peut être une clé de traduction |
 | `WorkDir` | Dossier de travail ; par défaut, le dossier courant. L'utilisateur peut le changer dans la Configuration |
 
+## Mémoriser les réglages
+
+ori-agent n'enregistre rien lui-même. La structure `oriagent.Settings` réunit toutes les valeurs de la page Configuration, et l'application les conserve où elle veut :
+
+| Champ | Valeur |
+|---|---|
+| `WorkDir` | Dossier de travail |
+| `AllowCommands`, `AskEdits` | Autoriser les commandes, demander avant de modifier un fichier |
+| `Thinking` | Réflexion étendue |
+| `Notifications` | Notifications |
+| `Model` | Le `Name` du modèle choisi |
+| `Dark` | Thème sombre |
+| `Locale` | Langue de l'interface |
+
+- `Config.Settings` donne les valeurs de départ. Il prime sur `WorkDir`, `LightMode` et `Locale` ; un dossier qui n'existe plus, une langue sans catalogue ou un modèle inconnu sont ignorés. Sans lui, ce sont les valeurs de `oriagent.DefaultSettings()` : commandes, confirmation des modifications, réflexion et thème sombre activés.
+- `Config.OnSettings` reçoit les nouvelles valeurs à chaque changement : interrupteurs et choix de la Configuration, bouton de thème de la barre de titre, `/model`, `/theme`, `/lang`, dossier appliqué par « Terminer ». Il est appelé à la fin de l'image, dans le fil de l'interface, état verrouillé : il doit rendre la main vite, donc écrire le fichier dans une goroutine.
+- Une commande lit les valeurs courantes avec `c.Settings()` ; un agent avec `t.Thinking`, `t.AllowCommands`, `t.AskEdits`, `t.Model`, `t.WorkDir` et `t.Locale`.
+
+`Settings` porte des étiquettes JSON :
+
+```go
+set := oriagent.DefaultSettings()
+if data, err := os.ReadFile(chemin); err == nil {
+	_ = json.Unmarshal(data, &set) // les champs absents gardent leur valeur par défaut
+}
+oriagent.Run(oriagent.Config{
+	Settings: &set,
+	OnSettings: func(s oriagent.Settings) {
+		data, _ := json.MarshalIndent(s, "", "  ")
+		go os.WriteFile(chemin, data, 0o600)
+	},
+})
+```
+
 ## Commandes
 
 Chaque commande est un `*oriagent.Command` :
@@ -55,8 +89,10 @@ Ce que `Ctl` permet :
 | `PickFiles()` | Ouvrir le sélecteur de pièces jointes |
 | `Notify(msg)` | Notification passagère |
 | `Show(vue)` | Afficher `"chat"`, `"setup"`, `"profile"` ou l'`ID` d'une page |
-| `Models()`, `Model()`, `SetModel(i)` | Modèle actif |
+| `Models()`, `Model()`, `SetModel(i)`, `SetModels(ms)` | Modèle actif, liste des modèles |
+| `User()`, `SetUser(u)` | Profil (voir [Profil](#profil)) |
 | `Dark()`, `SetDark(b)` | Thème |
+| `Settings()` | Valeurs de la page Configuration (voir [Mémoriser les réglages](#mémoriser-les-réglages)) |
 | `Locale()`, `Locales()`, `SetLocale(l)`, `LanguageName(l)`, `T(clé)` | Langue et traductions |
 | `ToggleSidebar()`, `ToggleVoice()`, `Pomodoro()` | Barre latérale, dictée, minuteur |
 | `WorkDir()`, `Commands()` | Dossier de travail, liste des commandes |
@@ -84,8 +120,45 @@ Les pages s'affichent dans la barre latérale, au-dessus du profil. Le kit [`ui`
 |---|---|
 | `User` | Prénom, nom, e-mail, service et fonction (`First`, `Last`, `Email`, `Service`, `Role`) |
 | `Devices` | Appareils connectés (`Name`, `Detail`, `Current`) ; vide, la section est masquée |
+| `ProfileLock` | Champs en lecture seule (`First`, `Last`, `Email`, `Service`, `Role`), par exemple ceux qui viennent d'un annuaire |
+| `OnProfile` | Appelé avec les champs modifiés quand l'utilisateur clique sur « Enregistrer » |
+| `OnLogout` | Appelé par le bouton « Se déconnecter » |
 
-Les modifications faites dans la page Profil restent en mémoire.
+Sans `OnProfile`, les modifications restent en mémoire, et sans `OnLogout` la déconnexion est simulée. Les deux fonctions s'exécutent dans une goroutine : pendant ce temps les boutons de la page sont inactifs et affichent « Enregistrement… » ou « Déconnexion… ». Le `User` renvoyé par `OnProfile` remplace les champs et le pied de la barre latérale ; l'application peut le corriger, par exemple remettre une adresse qu'elle ne laisse pas modifier. Une erreur s'affiche dans une notification et les modifications restent dans les champs.
+
+```go
+oriagent.Config{
+	User:        utilisateur,
+	ProfileLock: oriagent.ProfileLock{Email: true},
+	OnProfile: func(ctx context.Context, u oriagent.User) (oriagent.User, error) {
+		return annuaire.Enregistrer(ctx, u) // renvoie le profil tel qu'enregistré
+	},
+	OnLogout: func(ctx context.Context) error { return session.Fermer(ctx) },
+}
+```
+
+Le profil et les modèles fixés au démarrage peuvent changer ensuite, par exemple après une connexion : `c.SetUser(u)` et `c.SetModels(ms)` dans une commande, `t.SetUser(u)` et `t.SetModels(ms)` depuis un tour d'agent (lancé par `c.RunTurn`). Le modèle choisi reste sélectionné si son nom figure encore dans la liste, sinon c'est le premier ; `OnSettings` est appelé si la sélection change.
+
+## Projets
+
+Un projet regroupe des sessions dans la barre latérale. En plus de son nom et de ses sessions, il peut avoir :
+
+| Champ | Rôle |
+|---|---|
+| `Description` | Un texte libre, modifiable par l'utilisateur (ce n'est pas une clé de traduction) |
+| `WorkDir` | Son dossier : il devient `Turn.WorkDir` pour ses sessions et leurs sous-agents, et c'est lui qui est affiché, copié et proposé pour joindre un fichier. Vide : le dossier de la Configuration |
+| `Permissions` | Ses autorisations (`AllowCommands`, `AskEdits`), transmises à l'agent à la place de celles de la Configuration. Nil : celles de la Configuration |
+| `Permanent` | Pas de bouton de suppression sur sa page (par exemple le dossier où l'application a été lancée) |
+
+Chaque ligne de projet porte un « + » qui démarre une session dedans, ou reprend sa session vide ; `c.NewSessionIn(p)` fait de même depuis une commande.
+
+Trois rappels laissent l'application gérer les projets :
+
+- **`OnNewProject(ctx, nom, description)`** : le bouton principal de la barre latérale devient « Nouveau projet » et ouvre un formulaire. L'application crée ce qui porte le projet, souvent un dossier, et renvoie le `*Project`.
+- **`OnUpdateProject(ctx, projet, modif)`** : une roue dentée sur chaque ligne de projet ouvre sa page (nom, description, autorisations, dossier copiable). L'application enregistre la modification et la renvoie telle qu'elle l'a gardée.
+- **`OnDeleteProject(ctx, projet)`** : ajoute à cette page un bouton de suppression, à confirmer, sauf pour un projet `Permanent`.
+
+Ils s'exécutent dans une goroutine ; une erreur reste affichée dans le formulaire ou la page. L'exemple [`examples/anna/store.go`](../examples/anna/store.go) en donne une version complète : un dossier par projet, marqué par un fichier `project.json`, rechargé au démarrage, et une suppression qui ne touche jamais un dossier que l'application n'a pas créé.
 
 ## Données de démonstration
 
@@ -151,3 +224,4 @@ Utile pour les démonstrations et les tests :
 | `Attach` | Fichiers joints à la zone de saisie |
 | `Preview` | Fichier ouvert dans l'aperçu |
 | `Locale`, `LightMode` | Langue et thème |
+| `Settings` | Tous les réglages de la Configuration (voir [Mémoriser les réglages](#mémoriser-les-réglages)) |

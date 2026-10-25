@@ -39,7 +39,7 @@ func (a *App) emptyState(gtx C) D {
 	th := a.th
 	sub := a.cfg.EmptySubtitle
 	if sub == "" {
-		sub = a.workDir
+		sub = a.sessionWorkDir(a.cur)
 	}
 	return layout.Center.Layout(gtx, func(gtx C) D {
 		return layout.Flex{Axis: layout.Vertical, Alignment: layout.Middle}.Layout(gtx,
@@ -102,7 +102,7 @@ func (a *App) composer(gtx C) D {
 									if a.voice.active() {
 										return a.voiceMeter(gtx)
 									}
-									return ui.OneLine(gtx, th.Mono(12, a.workDir, th.Muted))
+									return ui.OneLine(gtx, th.Mono(12, a.sessionWorkDir(a.cur), th.Muted))
 								}),
 								ui.HSpace(10),
 								layout.Rigid(func(gtx C) D {
@@ -177,7 +177,7 @@ func (a *App) message(gtx C, m *Message) D {
 			}),
 		)
 	case KindAssistant:
-		return th.Body(15, m.Text)(gtx)
+		return th.Markdown(15, m.Text)(gtx)
 	case KindThinking:
 		return a.thinking(gtx, m)
 	case KindTool:
@@ -229,7 +229,7 @@ func (a *App) openMessage(m *Message) {
 	if path == "" {
 		path = m.ToolArg
 		if !filepath.IsAbs(path) {
-			path = filepath.Join(a.workDir, path)
+			path = filepath.Join(a.sessionWorkDir(a.cur), path)
 		}
 	}
 	a.showPreview(preview.Open(path, fallback))

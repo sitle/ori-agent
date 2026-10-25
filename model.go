@@ -84,11 +84,19 @@ func (s *Session) Spawn(title string) *Session {
 
 // Project groups sessions in the sidebar.
 type Project struct {
-	Name     string
-	Sessions []*Session
-	Open     bool
+	Name        string
+	Description string
+	// WorkDir is the folder of the project: Turn.WorkDir for its sessions.
+	// Empty: the folder of the configuration.
+	WorkDir string
+	// Permissions of the project's sessions; nil: the Configuration's.
+	Permissions *Permissions
+	// Permanent projects cannot be removed from their page.
+	Permanent bool
+	Sessions  []*Session
+	Open      bool
 
-	btn widget.Clickable
+	btn, add, manage widget.Clickable
 }
 
 // NewProject returns an open project holding sessions (first on top).

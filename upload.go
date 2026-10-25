@@ -85,7 +85,7 @@ func (a *App) pickFiles() {
 		return
 	}
 	a.picking = true
-	dir := a.workDir
+	dir := a.sessionWorkDir(a.cur)
 	go func() {
 		paths, err := zenity.SelectFileMultiple(
 			zenity.Title(a.t("upload.dialog")),

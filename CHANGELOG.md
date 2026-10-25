@@ -4,6 +4,34 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+### Ajouté
+
+- `Settings`, `Config.Settings` et `Config.OnSettings` : l'application restaure au démarrage les réglages de la page Configuration (dossier de travail, autorisations, réflexion étendue, notifications, modèle, thème, langue) et reçoit les nouvelles valeurs à chaque changement pour les enregistrer. `DefaultSettings()` donne les valeurs par défaut.
+- `Ctl.Settings()` : les réglages courants, pour les commandes.
+- `Turn.AllowCommands` et `Turn.AskEdits` : les autorisations de l'espace de travail, pour les agents.
+- `Config.OnProfile` et `Config.OnLogout` : l'application enregistre le profil et gère la déconnexion ; ils s'exécutent dans une goroutine, les boutons de la page Profil attendent la fin, une erreur s'affiche dans une notification.
+- `Config.ProfileLock` : champs du profil en lecture seule.
+- `Turn.SetUser`, `Turn.SetModels`, `Ctl.User`, `Ctl.SetUser`, `Ctl.SetModels` : remplacer le profil et la liste des modèles après le démarrage, par exemple après une connexion.
+- Rendu Markdown des réponses de l'assistant : titres, paragraphes, listes à puces (imbriquées) et numérotées, citations, blocs de code, tableaux, filets ; en ligne, gras, italique, code et liens. Un marqueur encore ouvert pendant le streaming reste affiché tel quel.
+- `ui.ParseMarkdown`, `ui.ParseInline`, `ui.PlainInline`, `Theme.Markdown`, `Theme.MarkdownBlock` et `Theme.RichText` (texte à styles mélangés, coupé entre les mots), utilisables hors de l'application.
+- `Project.WorkDir` et `Project.Description` : un projet peut avoir son propre dossier, transmis à l'agent dans `Turn.WorkDir` pour ses sessions.
+- `Config.OnNewProject` : le bouton principal de la barre latérale ouvre un formulaire (nom, description) et l'application crée le projet, par exemple un dossier d'espace de travail ; l'appel se fait dans une goroutine, une erreur reste affichée dans le formulaire.
+- Bouton « + » à droite de chaque projet de la barre latérale : démarre une session dans ce projet (ou reprend sa session vide). `Ctl.NewSessionIn` fait de même depuis une commande.
+- Page d'un projet, ouverte par la roue dentée de sa ligne quand `Config.OnUpdateProject` est défini : nom, description, autorisations, dossier (copiable) ; `Config.OnDeleteProject` ajoute un bouton de suppression à confirmer, absent pour un projet `Permanent`.
+- `Permissions` et `Project.Permissions` : autorisations propres à un projet, transmises à l'agent dans `Turn.AllowCommands` et `Turn.AskEdits` (sinon celles de la Configuration).
+- Le dossier affiché (accueil, zone de saisie), copié, ouvert ou proposé pour joindre un fichier est celui du projet de la session ; `Ctl.WorkDir` et `Ctl.Open` le suivent aussi.
+
+### Modifié
+
+- L'aperçu des fichiers Markdown utilise le même rendu : le gras, l'italique, le code et les liens y sont désormais affichés au lieu d'être retirés.
+- L'exemple `anna` utilise les nouveautés : il enregistre les réglages, le profil et les projets créés dans le dossier de configuration de l'utilisateur (option `-data` pour en choisir un autre), verrouille l'e-mail du profil, propose `/login` (profil et modèles remplacés après une connexion simulée) et donne aux projets de démo un dossier, une description, des autorisations propres ou le statut permanent. Les options `-lang` et `-light` restent prioritaires sur les réglages enregistrés.
+- Documentation mise à jour : projets, réglages, profil et Markdown dans le README, les guides et la skill des assistants de code.
+
+### Changements incompatibles
+
+- `preview` ne fournit plus son propre parseur Markdown : il utilise celui de `ui` (`ui.ParseMarkdown`).
+- Quand `Config.Settings` est fourni, il l'emporte sur `WorkDir`, `LightMode` et `Locale`.
+
 ## [0.1.0] - 2026-10-24
 
 Première version publique.

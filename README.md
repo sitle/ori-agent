@@ -11,11 +11,12 @@
 ## Ce que vous obtenez
 
 - Une fenêtre complète : barre de titre, arborescence projets → sessions → sous-agents, fil de conversation, zone de saisie.
-- Un fil riche : réflexion du modèle en streaming, appels d'outils dépliables, listes de tâches, bouton Stop.
+- Des projets avec leur propre dossier et leurs autorisations, que l'utilisateur crée, modifie et supprime depuis la barre latérale (votre application décide de ce que cela fait sur le disque).
+- Un fil riche : réponses en Markdown, réflexion du modèle en streaming, appels d'outils dépliables, listes de tâches, bouton Stop.
 - Une palette de commandes `/`, extensible avec vos propres commandes.
 - Un aperçu de documents à droite : Markdown, code, PDF et images.
 - Des pièces jointes, une dictée vocale (moteur à brancher), un minuteur Pomodoro.
-- Des pages Configuration et Profil, et vos propres pages.
+- Des pages Configuration et Profil, dont votre application enregistre les valeurs (réglages, profil, connexion et déconnexion), et vos propres pages.
 - Une interface en français et en anglais, extensible à d'autres langues, avec changement en direct.
 - Un thème clair et sombre, remplaçable par un autre design system.
 - Windows, macOS et Linux, en Go pur sous Windows.
@@ -79,13 +80,13 @@ Vous utilisez un assistant de code (Claude Code, Codex, Cursor…) ? Le dépôt 
 ## Exemples
 
 - [`examples/minimal`](examples/minimal/main.go) : un agent « écho » d'une quarantaine de lignes.
-- [`examples/anna`](examples/anna/main.go) : « Anna Assistant », la démonstration complète, avec un agent simulé, des données de démo, une page et des commandes en plus, des traductions.
+- [`examples/anna`](examples/anna/main.go) : « Anna Assistant », la démonstration complète. Elle comprend un agent simulé, des données de démo, une page et des commandes en plus (dont `/login`) et des traductions. Elle enregistre aussi les réglages, le profil et les projets créés dans le dossier de configuration de l'utilisateur ([`store.go`](examples/anna/store.go)).
 
 ```bash
 go run ./examples/anna -lang en -light
 ```
 
-Autres options : `-view setup -step 3`, `-view profile`, `-view shortcuts`, `-attach "fichier1,fichier2"`.
+Autres options : `-view setup -step 3`, `-view profile`, `-view shortcuts`, `-attach "fichier1,fichier2"`, `-data dossier` (où enregistrer les données d'Anna).
 
 | | |
 |---|---|
@@ -108,10 +109,10 @@ L'intégration continue compile et teste sur les trois systèmes ; l'interface n
 
 Le projet est expérimental (version 0.x) : l'API peut encore changer d'une version à l'autre, voir le [journal des modifications](CHANGELOG.md).
 
-- Rien n'est persisté : sessions, réglages et profil vivent en mémoire.
+- ori-agent n'enregistre rien lui-même : il transmet les réglages, le profil et les projets à votre application, qui choisit où les garder. Les sessions et leurs conversations restent en mémoire.
 - Fenêtre sans décoration native : sous macOS, les pastilles de fenêtre disparaissent.
 - Pas de glisser-déposer de fichiers depuis le système (non pris en charge par Gio v0.8).
-- Le Markdown de l'aperçu est un sous-ensemble : blocs seulement, sans gras ni liens cliquables.
+- Le Markdown couvre l'essentiel (titres, listes, citations, code, tableaux, gras, italique) ; les liens sont mis en forme mais pas encore cliquables.
 
 ## Contribuer
 

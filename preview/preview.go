@@ -51,8 +51,8 @@ type Doc struct {
 	// T translates the pane's texts (keys "preview.*"); nil means English.
 	T i18n.Translator
 
-	lines  []string // Code
-	blocks []block  // Markdown
+	lines  []string     // Code
+	blocks []ui.MDBlock // Markdown
 
 	img     paint.ImageOp // Image
 	imgSize image.Point
@@ -121,7 +121,7 @@ func Open(path, fallback string) *Doc {
 	}
 	src = strings.ReplaceAll(strings.ReplaceAll(src, "\r\n", "\n"), "\t", "    ")
 	if e := ext(path); e == "md" || e == "markdown" {
-		d.Kind, d.blocks = Markdown, parseMarkdown(src)
+		d.Kind, d.blocks = Markdown, ui.ParseMarkdown(src)
 	} else {
 		d.lines = strings.Split(strings.TrimRight(src, "\n"), "\n")
 	}
@@ -239,7 +239,7 @@ func (d *Doc) Layout(gtx C, th *ui.Theme) D {
 					if i == len(d.blocks)-1 {
 						in.Bottom = 24
 					}
-					return in.Layout(gtx, func(gtx C) D { return mdBlock(gtx, th, d.blocks[i]) })
+					return in.Layout(gtx, func(gtx C) D { return th.MarkdownBlock(gtx, 14, d.blocks[i]) })
 				})
 			}
 			return material.List(th.Material, &d.list).Layout(gtx, len(d.lines), func(gtx C, i int) D {

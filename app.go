@@ -1,6 +1,7 @@
 package oriagent
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -73,7 +74,10 @@ type App struct {
 
 	// features
 	setup       setupState
+	saved       Settings // last values given to Config.OnSettings
 	profile     profileState
+	newProj     newProjectState
+	projPage    projectPageState
 	voice       voiceState
 	pomo        Pomodoro
 	attachments []*Attachment
@@ -92,14 +96,22 @@ func newApp(cfg Config, w *app.Window) *App {
 	for l, c := range cfg.Translations {
 		a.tr.Add(l, c)
 	}
-	if !a.tr.SetLocale(cfg.Locale) {
+	set := cfg.Settings
+	if set != nil && isDir(set.WorkDir) {
+		a.workDir = set.WorkDir
+	}
+	if (set == nil || !a.tr.SetLocale(set.Locale)) && !a.tr.SetLocale(cfg.Locale) {
 		a.tr.SetLocale(i18n.Detect()) // keeps the fallback if unavailable
 	}
 	a.th = ui.NewTheme(cfg.Light, cfg.Dark, cfg.Fonts...)
 	a.th.SetDark(!cfg.LightMode)
+	if set != nil {
+		a.th.SetDark(set.Dark)
+	}
 	a.logo = ui.NewLogo(cfg.Logo)
 	a.editor.Submit = true
 	a.renameEd.SingleLine, a.renameEd.Submit = true, true
+	a.newProj.name.SingleLine = true
 	a.transcript.Axis, a.transcript.ScrollToEnd = layout.Vertical, true
 	a.sideList.Axis = layout.Vertical
 	a.pageBtns = make([]widget.Clickable, len(cfg.Pages))
@@ -144,7 +156,39 @@ func newApp(cfg Config, w *app.Window) *App {
 	if cfg.Preview != "" {
 		a.showPreview(preview.Open(cfg.Preview, ""))
 	}
+	a.saved = a.settings()
 	return a
+}
+
+// settings are the current values of the Configuration page.
+func (a *App) settings() Settings {
+	st := &a.setup
+	return Settings{
+		WorkDir:       a.workDir,
+		AllowCommands: st.allowCmds.Value,
+		AskEdits:      st.askEdits.Value,
+		Thinking:      st.thinking.Value,
+		Notifications: st.notifyOn.Value,
+		Model:         a.model().Name,
+		Dark:          a.th.Dark,
+		Locale:        a.tr.Locale(),
+	}
+}
+
+// checkSettings calls Config.OnSettings when a value changed since the last
+// call; the frame ends with it, so every source of change is covered.
+func (a *App) checkSettings() {
+	if s := a.settings(); s != a.saved {
+		a.saved = s
+		if a.cfg.OnSettings != nil {
+			a.cfg.OnSettings(s)
+		}
+	}
+}
+
+func isDir(path string) bool {
+	info, err := os.Stat(path)
+	return path != "" && err == nil && info.IsDir()
 }
 
 func (a *App) loop() error {
@@ -170,7 +214,9 @@ func (a *App) update(f func()) {
 	a.mu.Lock()
 	f()
 	a.mu.Unlock()
-	a.w.Invalidate()
+	if a.w != nil { // nil in tests
+		a.w.Invalidate()
+	}
 }
 
 func (a *App) notify(msg string) { a.toast.Show(msg) }
@@ -205,6 +251,24 @@ func (a *App) languageName(locale string) string { return a.tr.In(locale, "lang.
 
 func (a *App) model() Model { return a.cfg.Models[a.setup.model] }
 
+// setModels replaces the model list and keeps the selected model when its
+// name is still there, else selects the first one.
+func (a *App) setModels(ms []Model) {
+	if len(ms) == 0 {
+		ms = []Model{{Name: "Default"}}
+	}
+	cur, sel := a.model().Name, 0
+	for i, m := range ms {
+		if m.Name == cur {
+			sel = i
+			break
+		}
+	}
+	a.cfg.Models = append([]Model(nil), ms...)
+	a.setup.model = sel
+	a.setup.models = make([]widget.Clickable, len(ms))
+}
+
 func (a *App) setDark(dark bool) { a.th.SetDark(dark) }
 
 func (a *App) frame(gtx C) {
@@ -226,7 +290,19 @@ func (a *App) frame(gtx C) {
 		}
 	}
 	if a.newBtn.Clicked(gtx) {
-		a.newSession()
+		if a.cfg.OnNewProject != nil {
+			a.openNewProject()
+		} else {
+			a.newSession()
+		}
+	}
+	for _, p := range a.projects {
+		if p.add.Clicked(gtx) {
+			a.newSessionIn(p)
+		}
+		if p.manage.Clicked(gtx) {
+			a.openProject(p)
+		}
 	}
 	if a.navSetup.Clicked(gtx) {
 		a.view = viewSetup
@@ -277,6 +353,7 @@ func (a *App) frame(gtx C) {
 		layout.Flexed(1, a.layoutBody),
 	)
 	a.toast.Layout(gtx, a.th)
+	a.checkSettings()
 }
 
 func (a *App) layoutBody(gtx C) D {
@@ -310,6 +387,10 @@ func (a *App) layoutView(gtx C) D {
 		return a.layoutSetup(gtx)
 	case viewProfile:
 		return a.layoutProfile(gtx)
+	case viewNewProject:
+		return a.layoutNewProject(gtx)
+	case viewProject:
+		return a.layoutProject(gtx)
 	}
 	for _, p := range a.cfg.Pages {
 		if p.ID == a.view {
@@ -339,6 +420,12 @@ func (a *App) viewTitle() string {
 		return a.t("view.setup")
 	case viewProfile:
 		return a.t("view.profile")
+	case viewNewProject:
+		return a.t("project.new")
+	case viewProject:
+		if p := a.projPage.p; p != nil {
+			return p.Name
+		}
 	}
 	for _, p := range a.cfg.Pages {
 		if p.ID == a.view {

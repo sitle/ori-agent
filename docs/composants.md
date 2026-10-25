@@ -16,6 +16,7 @@ Le `Theme` porte la palette active (`th.Bg`, `th.Text`, `th.Accent`…) et le mo
 | Famille | Fonctions et méthodes |
 |---|---|
 | Texte | `th.Label`, `th.Mono`, `th.Body`, `ui.OneLine` (une ligne coupée par « … ») |
+| Markdown et texte riche | `th.Markdown`, `th.MarkdownBlock`, `th.RichText`, `ui.ParseMarkdown`, `ui.ParseInline`, `ui.PlainInline` (voir plus bas) |
 | Boutons | `th.Button` (`ui.Primary`, `ui.Secondary`, `ui.Danger`), `th.IconButton`, `th.RoundButton`, `th.NavRow` |
 | Formulaires | `th.Field`, `th.ToggleRow`, `th.Switch`, `th.Radio`, `th.ChoiceCard` |
 | Mise en page | `th.Page`, `th.Section`, `th.Panel`, `ui.Card`, `ui.Bordered`, `ui.Centered`, `ui.Flow`, `ui.HSpace`, `ui.VSpace`, `ui.Expand`, `th.HLine` |
@@ -40,6 +41,20 @@ func reglages(gtx layout.Context, th *ui.Theme, notif *widget.Bool, ok *widget.C
 	)
 }
 ```
+
+## Markdown et texte riche
+
+Le kit sait afficher du Markdown, comme le font les réponses de l'assistant et l'aperçu des fichiers `.md` :
+
+```go
+widget := th.Markdown(15, "## Résultat\n\nLe fichier **config.yaml** est *valide*.\n\n- 3 sections\n- 12 clés")
+```
+
+- **Blocs** : titres, paragraphes, listes à puces (imbriquées) et numérotées, citations, blocs de code, tableaux, filets.
+- **En ligne** : gras, italique, `code` et liens. Les liens sont mis en forme mais pas cliquables.
+- **Streaming** : un marqueur encore ouvert (`**gras` sans sa fin) reste affiché tel quel, ce qui permet d'afficher un texte en cours d'écriture.
+
+Pour un rendu sur mesure, `ui.ParseMarkdown` découpe un texte en blocs (`MDBlock`), `th.MarkdownBlock` en dessine un, `ui.ParseInline` découpe une ligne en segments stylés (`Span`) et `th.RichText` les dessine avec un retour à la ligne entre les mots. `ui.PlainInline` donne le texte sans sa mise en forme.
 
 ## Changer de design system
 
@@ -70,7 +85,7 @@ doc.Layout(gtx, th)
 if doc.Close.Clicked(gtx) { /* fermer */ }
 ```
 
-- **Markdown** : titres, paragraphes, listes, blocs de code, tableaux, séparateurs.
+- **Markdown** : le même rendu que les réponses de l'assistant (voir [Markdown et texte riche](#markdown-et-texte-riche)).
 - **Code** : numéros de ligne, police à chasse fixe.
 - **PDF** : rendu par PDFium compilé en WebAssembly, en Go pur, 50 pages au plus.
 - **Images** : PNG, JPEG, GIF.

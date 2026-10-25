@@ -35,7 +35,7 @@ Tout l'état de l'application (projets, sessions, messages, réglages) est prot�
 
 - Le rendu tient le verrou pendant toute l'image.
 - Les commandes s'exécutent pendant le rendu : elles modifient l'état directement, sans verrou à prendre (d'où la règle « `Ctl` n'est valable que pendant `Run` »).
-- Les travaux de fond (agent, envoi simulé de fichiers, dictée, rendu PDF) passent par `App.update(f)` : prendre le verrou, appliquer `f`, relâcher, demander une image.
+- Les travaux de fond (agent, envoi simulé de fichiers, dictée, rendu PDF, rappels de l'application comme `OnProfile`, `OnLogout`, `OnNewProject`, `OnUpdateProject` et `OnDeleteProject`) passent par `App.update(f)` : prendre le verrou, appliquer `f`, relâcher, demander une image. `OnSettings` fait exception : il est appelé en fin d'image, verrou pris, et doit rendre la main vite.
 - Chaque méthode de `Turn` est un `update` : un agent peut donc écrire depuis n'importe quelle goroutine sans rien savoir du verrou.
 - L'aperçu PDF a son propre verrou, pour rester utilisable hors de la coquille.
 
@@ -47,7 +47,7 @@ Tout l'état de l'application (projets, sessions, messages, réglages) est prot�
 
 ## Les données
 
-- Un `Project` contient des `Session`, et une session des `Children` (ses sous-agents) : c'est l'arborescence de la barre latérale.
+- Un `Project` contient des `Session`, et une session des `Children` (ses sous-agents) : c'est l'arborescence de la barre latérale. Un projet peut avoir son dossier (`WorkDir`) et ses autorisations (`Permissions`), transmis aux tours de ses sessions et de leurs sous-agents.
 - Une session contient des `Message`, de plusieurs sortes (`Kind`) : bulle utilisateur, texte, réflexion, appel d'outil, tâches, commande, avis.
 - L'état visuel (boutons, dépliement) est stocké à côté des données, dans des champs non exportés.
 

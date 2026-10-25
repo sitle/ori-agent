@@ -1,8 +1,8 @@
 package oriagent
 
 import (
+	"context"
 	"image"
-	"os"
 	"strings"
 
 	"gioui.org/font"
@@ -17,7 +17,8 @@ import (
 var setupSteps = []string{"setup.step.welcome", "setup.step.workspace", "setup.step.model", "setup.step.prefs"} // keys
 
 // setupState is the first-run wizard. Choices apply to the running app
-// (model, thinking, theme, working directory) but are not persisted.
+// (model, thinking, theme, working directory); ori-agent does not persist
+// them, the application can through Config.Settings and OnSettings.
 type setupState struct {
 	step       int
 	back, next widget.Clickable
@@ -59,26 +60,103 @@ type profileState struct {
 	devices            []*Device
 
 	photo, save, cancel, logout widget.Clickable
+	saving, loggingOut          bool // Config.OnProfile or OnLogout is running
 }
 
 func (a *App) initSetup() {
 	st := &a.setup
 	st.dir.SingleLine = true
 	st.dir.SetText(a.workDir)
-	st.allowCmds.Value, st.askEdits.Value, st.thinking.Value = true, true, true
+	set := DefaultSettings()
+	if a.cfg.Settings != nil {
+		set = *a.cfg.Settings
+	}
+	st.allowCmds.Value, st.askEdits.Value = set.AllowCommands, set.AskEdits
+	st.thinking.Value, st.notifyOn.Value = set.Thinking, set.Notifications
 	st.models = make([]widget.Clickable, len(a.cfg.Models))
+	for i, m := range a.cfg.Models {
+		if m.Name == set.Model {
+			st.model = i
+			break
+		}
+	}
 }
 
 func (a *App) initProfile() {
 	p := &a.profile
-	u := a.cfg.User
-	p.saved = [5]string{u.First, u.Last, u.Email, u.Service, u.Role}
-	for i := range p.fields {
-		p.fields[i].SingleLine = true
-		p.fields[i].SetText(p.saved[i])
+	lock := a.cfg.ProfileLock
+	for i, ro := range [5]bool{lock.First, lock.Last, lock.Email, lock.Service, lock.Role} {
+		p.fields[i].SingleLine, p.fields[i].ReadOnly = true, ro
 	}
+	a.setUser(a.cfg.User)
 	p.emailNotif.Value = true
 	p.devices = a.cfg.Devices
+}
+
+// setUser replaces the saved profile and the fields (and so the sidebar
+// footer); edits in progress are lost.
+func (a *App) setUser(u User) {
+	p := &a.profile
+	p.saved = [5]string{u.First, u.Last, u.Email, u.Service, u.Role}
+	for i := range p.fields {
+		p.fields[i].SetText(p.saved[i])
+	}
+}
+
+func (a *App) user() User {
+	s := a.profile.saved
+	return User{First: s[pFirst], Last: s[pLast], Email: s[pEmail], Service: s[pService], Role: s[pRole]}
+}
+
+// saveProfile keeps the edited fields, through Config.OnProfile when set:
+// it runs on its own goroutine and its User replaces the fields.
+func (a *App) saveProfile() {
+	p := &a.profile
+	var f [5]string
+	for i := range p.fields {
+		f[i] = strings.TrimSpace(p.fields[i].Text())
+	}
+	edited := User{First: f[pFirst], Last: f[pLast], Email: f[pEmail], Service: f[pService], Role: f[pRole]}
+	if a.cfg.OnProfile == nil {
+		a.setUser(edited)
+		a.notify(a.t("profile.saved"))
+		return
+	}
+	p.saving = true
+	go func() {
+		u, err := a.cfg.OnProfile(context.Background(), edited)
+		a.update(func() {
+			p.saving = false
+			if err != nil {
+				a.notify(a.t("profile.saveFailed", err.Error()))
+				return
+			}
+			a.setUser(u)
+			a.notify(a.t("profile.saved"))
+		})
+	}()
+}
+
+// logout runs Config.OnLogout on its own goroutine; without it, the sign-out
+// is only simulated.
+func (a *App) logout() {
+	p := &a.profile
+	if a.cfg.OnLogout == nil {
+		a.notify(a.t("profile.loggedOut"))
+		return
+	}
+	p.loggingOut = true
+	go func() {
+		err := a.cfg.OnLogout(context.Background())
+		a.update(func() {
+			p.loggingOut = false
+			if err != nil {
+				a.notify(a.t("profile.logoutFailed", err.Error()))
+				return
+			}
+			a.notify(a.t("profile.signedOut"))
+		})
+	}()
 }
 
 // ---- setup wizard ----
@@ -92,10 +170,8 @@ func (a *App) layoutSetup(gtx C) D {
 		if st.step < len(setupSteps)-1 {
 			st.step++
 		} else {
-			if d := strings.TrimSpace(st.dir.Text()); d != "" {
-				if info, err := os.Stat(d); err == nil && info.IsDir() {
-					a.workDir = d
-				}
+			if d := strings.TrimSpace(st.dir.Text()); isDir(d) {
+				a.workDir = d
 			}
 			st.step, a.view, a.focus = 0, viewChat, true
 			a.notify(a.t("setup.saved"))
@@ -367,20 +443,33 @@ func (a *App) layoutProfile(gtx C) D {
 	if p.photo.Clicked(gtx) {
 		a.notify(a.t("profile.photoPicker"))
 	}
-	if p.save.Clicked(gtx) {
-		for i := range p.fields {
-			p.saved[i] = p.fields[i].Text()
-		}
-		a.notify(a.t("profile.saved"))
+	busy := p.saving || p.loggingOut
+	if p.save.Clicked(gtx) && !busy {
+		a.saveProfile()
 	}
-	if p.cancel.Clicked(gtx) {
-		for i := range p.fields {
-			p.fields[i].SetText(p.saved[i])
-		}
+	if p.cancel.Clicked(gtx) && !busy {
+		a.setUser(a.user())
 		a.notify(a.t("profile.canceled"))
 	}
-	if p.logout.Clicked(gtx) {
-		a.notify(a.t("profile.loggedOut"))
+	if p.logout.Clicked(gtx) && !busy {
+		a.logout()
+	}
+	busy = p.saving || p.loggingOut
+	save, logout := a.t("profile.save"), a.t("profile.logout")
+	if p.saving {
+		save = a.t("profile.saving")
+	}
+	if p.loggingOut {
+		logout = a.t("profile.loggingOut")
+	}
+	// While OnProfile or OnLogout runs, the buttons ignore input.
+	button := func(btn *widget.Clickable, txt string, kind ui.ButtonKind) layout.Widget {
+		return func(gtx C) D {
+			if busy {
+				gtx = gtx.Disabled()
+			}
+			return th.Button(gtx, btn, txt, kind)
+		}
 	}
 	for i := 0; i < len(p.devices); i++ {
 		if d := p.devices[i]; d.revoke.Clicked(gtx) {
@@ -418,11 +507,11 @@ func (a *App) layoutProfile(gtx C) D {
 			}),
 			layout.Rigid(func(gtx C) D {
 				return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
-					layout.Rigid(func(gtx C) D { return th.Button(gtx, &p.logout, a.t("profile.logout"), ui.Danger) }),
+					layout.Rigid(button(&p.logout, logout, ui.Danger)),
 					layout.Flexed(1, ui.Expand),
-					layout.Rigid(func(gtx C) D { return th.Button(gtx, &p.cancel, a.t("profile.cancel"), ui.Secondary) }),
+					layout.Rigid(button(&p.cancel, a.t("profile.cancel"), ui.Secondary)),
 					ui.HSpace(10),
-					layout.Rigid(func(gtx C) D { return th.Button(gtx, &p.save, a.t("profile.save"), ui.Primary) }),
+					layout.Rigid(button(&p.save, save, ui.Primary)),
 				)
 			}),
 		)

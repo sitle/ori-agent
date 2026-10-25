@@ -28,13 +28,15 @@ type HistoryEntry struct {
 // Turn is the agent's handle on one turn. Its methods are safe to call from
 // any goroutine: they lock the UI state and request a redraw.
 type Turn struct {
-	Prompt      string
-	Attachments []*Attachment
-	History     []HistoryEntry // the session before this turn
-	Thinking    bool           // extended thinking is enabled in the settings
-	Model       Model
-	WorkDir     string
-	Locale      string // interface language, so the agent can answer in it
+	Prompt        string
+	Attachments   []*Attachment
+	History       []HistoryEntry // the session before this turn
+	Thinking      bool           // extended thinking is enabled in the settings
+	AllowCommands bool           // the settings let the agent run commands (the agent enforces it)
+	AskEdits      bool           // the settings ask to confirm file edits (the agent enforces it)
+	Model         Model
+	WorkDir       string
+	Locale        string // interface language, so the agent can answer in it
 
 	app     *App
 	s       *Session
@@ -162,9 +164,21 @@ func (t *Turn) Subagent(title, prompt string) *Turn {
 		t.s.add(call.m)
 		t.created = append(t.created, call.m)
 		sub.add(UserMsg(prompt))
-		child = &Turn{Prompt: prompt, Thinking: t.Thinking, Model: t.Model, WorkDir: t.WorkDir, Locale: t.Locale, app: t.app, s: sub, parent: call}
+		child = &Turn{Prompt: prompt, Thinking: t.Thinking, AllowCommands: t.AllowCommands, AskEdits: t.AskEdits, Model: t.Model, WorkDir: t.WorkDir, Locale: t.Locale, app: t.app, s: sub, parent: call}
 	})
 	return child
+}
+
+// SetUser replaces the profile (Profile page and sidebar footer), for
+// example after a sign-in turn.
+func (t *Turn) SetUser(u User) {
+	t.app.update(func() { t.app.setUser(u) })
+}
+
+// SetModels replaces the model list, as Ctl.SetModels. The running turn
+// keeps its Model.
+func (t *Turn) SetModels(ms []Model) {
+	t.app.update(func() { t.app.setModels(ms) })
 }
 
 // Finish ends a subagent turn: report becomes the parent's tool output.
@@ -226,8 +240,9 @@ func (a *App) startTurn(s *Session, prompt string, atts []*Attachment, fn TurnFu
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	s.Busy, s.cancel = true, cancel
+	perms := a.permissions(s)
 	t := &Turn{Prompt: prompt, Attachments: atts, History: hist, Thinking: a.setup.thinking.Value,
-		Model: a.model(), WorkDir: a.workDir, Locale: a.tr.Locale(), app: a, s: s}
+		AllowCommands: perms.AllowCommands, AskEdits: perms.AskEdits, Model: a.model(), WorkDir: a.sessionWorkDir(s), Locale: a.tr.Locale(), app: a, s: s}
 	go func() {
 		err := fn(ctx, t)
 		canceled := ctx.Err() != nil

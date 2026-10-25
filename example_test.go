@@ -2,6 +2,7 @@ package oriagent_test
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -113,6 +114,50 @@ func ExamplePage() {
 			"fr": {"about.title": "À propos", "about.body": "Version de démonstration."},
 			"en": {"about.title": "About", "about.body": "Demo version."},
 		},
+	})
+}
+
+// The application keeps the Configuration page values in a file of its own:
+// it restores them at startup and saves them whenever the user changes one.
+func ExampleSettings() {
+	path := filepath.Join(os.TempDir(), "settings.json")
+	set := oriagent.DefaultSettings() // missing fields keep their default
+	if data, err := os.ReadFile(path); err == nil {
+		_ = json.Unmarshal(data, &set)
+	}
+	oriagent.Run(oriagent.Config{
+		Models:   []oriagent.Model{{Name: "Fast"}, {Name: "Smart"}},
+		Settings: &set,
+		OnSettings: func(s oriagent.Settings) { // UI goroutine: do not block
+			data, _ := json.MarshalIndent(s, "", "  ")
+			go os.WriteFile(path, data, 0o600)
+		},
+	})
+}
+
+// The application saves the Profile page and handles the sign-out; a /login
+// command refreshes the profile and the models from its own turn.
+func ExampleConfig_profile() {
+	login := &oriagent.Command{Name: "login", Desc: "Sign in", Run: func(c *oriagent.Ctl, _ string) string {
+		err := c.RunTurn("", func(ctx context.Context, t *oriagent.Turn) error {
+			// … sign in, then:
+			t.SetUser(oriagent.User{First: "Hina", Last: "Teriitahi", Email: "hina@example.pf"})
+			t.SetModels([]oriagent.Model{{Name: "Fast"}, {Name: "Smart"}})
+			return nil
+		})
+		if err != nil {
+			return err.Error()
+		}
+		return ""
+	}}
+	oriagent.Run(oriagent.Config{
+		Commands:    []*oriagent.Command{login},
+		ProfileLock: oriagent.ProfileLock{Email: true}, // from the identity provider
+		OnProfile: func(ctx context.Context, u oriagent.User) (oriagent.User, error) {
+			// Runs on its own goroutine: save u, return it as saved.
+			return u, nil
+		},
+		OnLogout: func(ctx context.Context) error { return nil },
 	})
 }
 

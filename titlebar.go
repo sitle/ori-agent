@@ -222,7 +222,7 @@ func (a *App) handleMenu(gtx C) {
 		case menuNew:
 			a.newSession()
 		case menuCopyPath:
-			gtx.Execute(clipboard.WriteCmd{Type: "application/text", Data: io.NopCloser(strings.NewReader(a.workDir))})
+			gtx.Execute(clipboard.WriteCmd{Type: "application/text", Data: io.NopCloser(strings.NewReader(a.sessionWorkDir(s)))})
 			a.notify(a.t("toast.pathCopied"))
 		case menuClear:
 			s.Messages = nil

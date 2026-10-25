@@ -63,6 +63,7 @@ Turn inputs (read-only fields):
 | `Attachments` | `[]*Attachment` | `Path`, `Name`, `Ext` (lower case, no dot), `Size`, `ImageSize`, `IsImage()` |
 | `History` | `[]HistoryEntry` | earlier exchanges: `Role` (`"user"`/`"assistant"`), `Text` |
 | `Thinking` | `bool` | extended thinking enabled in settings |
+| `AllowCommands`, `AskEdits` | `bool` | workspace permissions from settings (run commands, confirm file edits); the agent enforces them |
 | `Model` | `Model` | `Name`, `Desc` chosen by the user |
 | `WorkDir` | `string` | working directory |
 | `Locale` | `string` | UI language (`"fr"`, `"en"`): answer in it |
@@ -77,6 +78,7 @@ Turn outputs:
 | `l := t.Tasks(items...)` then `l.Advance(i)`, `l.Set(i, oriagent.TaskDone)` | live checklist; item 0 starts running |
 | `s := t.Subagent(title, prompt)` … `s.Finish(report)` | child session in the sidebar + clickable "Agent" call; write into `s` like any Turn; `report` becomes the call output |
 | `t.Notify(msg)` | toast |
+| `t.SetUser(u)`, `t.SetModels(ms)` | replace the profile / model list fixed at startup (e.g. in a `/login` turn); the selected model stays if its `Name` is still listed, else the first |
 | `t.T(key, args...)` | translate with the app catalogs in the turn's locale |
 
 `Block.Write` appends; call `Done` exactly once (use `defer`). Starting a new `Text()` after a `Think()` is the normal pattern.
@@ -151,12 +153,20 @@ All fields optional (`oriagent.Config`):
 | `Locale`, `FallbackLocale` | `string` | OS language if available; fallback `"fr"` |
 | `Translations` | `map[string]map[string]string` | merged over `oriagent.Catalogs`; combine sets with `i18n.Merge` |
 | `OnLocale` | `func(string)` | after a language change |
+| `Settings` | `*Settings` | initial Configuration page values (see below); overrides `WorkDir`, `LightMode`, `Locale` |
+| `OnSettings` | `func(Settings)` | after any Configuration page value changes; UI goroutine, must not block |
 | `Agent` | `Agent` | placeholder that says none is set |
 | `WorkDir` | `string` | current directory |
 | `Models` | `[]Model` | `{Name, Desc}`; one "Default" model |
 | `User` | `User` | `First, Last, Email, Service, Role` for the profile |
+| `ProfileLock` | `ProfileLock` | `First, Last, Email, Service, Role bool`: read-only Profile fields |
+| `OnProfile` | `func(ctx, User) (User, error)` | on Profile "Save", in a goroutine (buttons wait); returned User replaces the fields, error toast keeps edits; nil = in memory |
+| `OnLogout` | `func(ctx) error` | on Profile "Sign out", same pattern; nil = simulated |
 | `Devices` | `[]*Device` | `{Name, Detail, Current}`; empty hides the section |
 | `Projects` | `[]*Project` | initial tree; default one empty session |
+| `OnNewProject` | `func(ctx, name, desc string) (*Project, error)` | set: the sidebar main button opens a create-project form; goroutine; error stays in the form |
+| `OnUpdateProject` | `func(ctx, *Project, ProjectEdit) (ProjectEdit, error)` | set: a gear on each project row opens its page (name, description, permissions, folder); returns the edit as kept |
+| `OnDeleteProject` | `func(ctx, *Project) error` | adds a confirmed remove button on the project page (not for `Permanent` projects) |
 | `Commands` | `[]*Command` | added to built-ins |
 | `Pages` | `[]Page` | sidebar pages |
 | `Dictation` | `Dictation` | simulated |
@@ -165,6 +175,24 @@ All fields optional (`oriagent.Config`):
 | `Placeholder`, `ModeLabel`, `EmptyTitle`, `EmptySubtitle` | `string` | text or translation keys; `ModeLabel: "-"` hides the chip |
 | `StartView`, `SetupStep`, `Attach`, `Preview` | | startup state: `"chat"`, `"setup"`, `"profile"` or a page ID; step 1-4; files; file to preview |
 | `Width`, `Height` | `unit.Dp` | 1280×820 |
+
+## Persisting settings
+
+ori-agent stores nothing. `oriagent.Settings` holds every Configuration page value: `WorkDir`, `AllowCommands`, `AskEdits`, `Thinking`, `Notifications bool`, `Model` (a `Model.Name`), `Dark`, `Locale`; it has JSON tags. `oriagent.DefaultSettings()` gives the values used when `Config.Settings` is nil (commands, edit confirmation, thinking and dark theme on). At startup a `WorkDir` that is not a folder, an unknown `Locale` or an unknown `Model` are ignored. `OnSettings` fires at the end of the frame for any change (setup toggles, model, theme, language, title bar theme button, `/model`, `/theme`, `/lang`, the setup's Finish), on the UI goroutine with the state locked: save in a goroutine. Commands read the current values with `c.Settings()`, agents with `t.Thinking`, `t.AllowCommands`, `t.AskEdits`, `t.Model`, `t.WorkDir`, `t.Locale`.
+
+```go
+set := oriagent.DefaultSettings()
+if data, err := os.ReadFile(path); err == nil {
+	_ = json.Unmarshal(data, &set) // missing fields keep their default
+}
+oriagent.Run(oriagent.Config{
+	Settings: &set,
+	OnSettings: func(s oriagent.Settings) {
+		data, _ := json.MarshalIndent(s, "", "  ")
+		go os.WriteFile(path, data, 0o600)
+	},
+})
+```
 
 ## Slash commands
 
@@ -180,7 +208,7 @@ All fields optional (`oriagent.Config`):
 }
 ```
 
-`Ctl` methods: `Session()`, `Sessions()`, `Projects()`, `Commands()`, `WorkDir()`, `NewSession()`, `Clear()`, `RunTurn(prompt string, fn TurnFunc) error` (nil fn = configured agent; error if the session is busy), `Open(path) error`, `PickFiles()`, `Notify(msg)`, `Show(view)`, `Models()`, `Model()`, `SetModel(i)`, `Dark()`, `SetDark(bool)`, `Locale()`, `Locales()`, `SetLocale(l) error`, `LanguageName(l)`, `T(key, args...)`, `ToggleSidebar()`, `ToggleVoice()`, `Pomodoro()`.
+`Ctl` methods: `Session()`, `Sessions()`, `Projects()`, `Commands()`, `WorkDir()` (the current session's project folder), `NewSession()`, `NewSessionIn(p)`, `Clear()`, `RunTurn(prompt string, fn TurnFunc) error` (nil fn = configured agent; error if the session is busy), `Open(path) error`, `PickFiles()`, `Notify(msg)`, `Show(view)`, `Models()`, `Model()`, `SetModel(i)`, `SetModels(ms)`, `User()`, `SetUser(u)`, `Dark()`, `SetDark(bool)`, `Settings()`, `Locale()`, `Locales()`, `SetLocale(l) error`, `LanguageName(l)`, `T(key, args...)`, `ToggleSidebar()`, `ToggleVoice()`, `Pomodoro()`.
 
 Built-ins: `/help /new /clear /compact /model /open /usage /status /lang /sidebar /upload /voice /pomodoro /theme /config /profile`.
 
@@ -217,6 +245,41 @@ s.Spawn("Run the tests")                       // subagent child
 p := oriagent.NewProject("web", s)             // first session on top
 // Message.Expanded, Session.Busy, Project.Open adjust the initial display.
 ```
+
+## Projects
+
+A `*Project` groups sessions in the sidebar. Besides `Name`, `Sessions` and `Open`:
+
+- `Description string`: user-editable content (not translated).
+- `WorkDir string`: the project's folder; it becomes `Turn.WorkDir` for its sessions and their subagents, and the folder shown, copied and used for attachments. Empty: the Configuration's folder.
+- `Permissions *oriagent.Permissions` (`AllowCommands`, `AskEdits bool`): overrides the Configuration's for its sessions (`Turn.AllowCommands`, `Turn.AskEdits`). Nil: the Configuration's.
+- `Permanent bool`: no remove button on its page (e.g. the folder the app runs in).
+
+Each project row has a `+` that starts a session in it (or reuses its empty one); `c.NewSessionIn(p)` does the same from a command. With `OnNewProject`, the main sidebar button becomes "New project" and opens a form; the application creates whatever backs the project (typically a workspace folder) and returns it:
+
+```go
+OnNewProject: func(ctx context.Context, name, desc string) (*oriagent.Project, error) {
+	dir := filepath.Join(workspaces, slug(name))
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return nil, err // shown in the form
+	}
+	p := oriagent.NewProject(name)
+	p.Description, p.WorkDir = desc, dir
+	return p, nil
+},
+OnUpdateProject: func(ctx context.Context, p *oriagent.Project, e oriagent.ProjectEdit) (oriagent.ProjectEdit, error) {
+	return e, save(p, e) // e.Name, e.Description, e.Permissions (nil: none of its own)
+},
+OnDeleteProject: func(ctx context.Context, p *oriagent.Project) error {
+	return nil // remove what the app created; never delete folders it does not own
+},
+```
+
+All three run on a goroutine of their own; errors stay on the form or page. `examples/anna/store.go` is a complete implementation (folders with a marker file, reload at startup, safe removal).
+
+## Markdown
+
+Assistant text blocks are rendered as Markdown (headings, nested and numbered lists, quotes, code blocks, tables, rules, bold, italic, inline code, links styled but not clickable); an unclosed marker while streaming stays as is. Write Markdown in `Block.Write`. The renderer is reusable: `th.Markdown(size, src)` returns a widget; lower level `ui.ParseMarkdown`, `th.MarkdownBlock`, `ui.ParseInline`, `th.RichText`, `ui.PlainInline`.
 
 ## Translations
 

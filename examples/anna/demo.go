@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"image"
 	"image/color"
+	"path/filepath"
 
 	"gioui.org/font"
 	"gioui.org/layout"
@@ -16,7 +18,7 @@ import (
 )
 
 // demoProjects is a pre-filled sidebar so every element is visible at launch.
-func demoProjects(cwdName, doc string) []*oriagent.Project {
+func demoProjects(cwd, doc string) []*oriagent.Project {
 	verbose := &oriagent.Session{Title: "Add a --verbose flag", Messages: []*oriagent.Message{
 		oriagent.UserMsg("Add a --verbose flag to the CLI and document it in the README."),
 		oriagent.ThinkingMsg("The user wants a --verbose flag on the CLI and matching docs. Flags are probably defined on the root command, "+
@@ -64,17 +66,62 @@ func demoProjects(cwdName, doc string) []*oriagent.Project {
 		oriagent.TextMsg("Demo session - no transcript was recorded."),
 	}}
 
+	// The folder the app runs in: its sessions work there, and it cannot be
+	// removed from its page.
+	here := oriagent.NewProject(filepath.Base(cwd), verbose)
+	here.WorkDir, here.Permanent = cwd, true
+	here.Description = "Le dossier dans lequel Anna a été lancée."
+
+	// A project with permissions of its own: the agent may not run commands
+	// in its sessions, whatever the Configuration says.
+	portal := oriagent.NewProject("portail-usagers", form, migration)
+	portal.Description = "Démarches en ligne des usagers du service public."
+	portal.Permissions = &oriagent.Permissions{AllowCommands: false, AskEdits: true}
+
 	data := oriagent.NewProject("data-pipeline",
 		demo("Sauvegarde quotidienne PostgreSQL"),
 		demo("Import des données INSEE"),
 	)
 	data.Open = false
 
-	return []*oriagent.Project{
-		oriagent.NewProject(cwdName, verbose),
-		oriagent.NewProject("portail-usagers", form, migration),
-		data,
-	}
+	return []*oriagent.Project{here, portal, data}
+}
+
+// demoModels are the models offered before /login; descriptions are keys.
+var demoModels = []oriagent.Model{
+	{Name: "Opus 5.5", Desc: "model.opus"},
+	{Name: "Sonnet 5.5", Desc: "model.sonnet"},
+	{Name: "Haiku 5.5", Desc: "model.haiku"},
+}
+
+// loginCommand simulates signing in to an identity provider: it runs a turn
+// that replaces the profile and the list of models (Turn.SetUser,
+// Turn.SetModels), as a real application would after an authentication.
+var loginCommand = &oriagent.Command{
+	Name: "login",
+	Desc: "login.desc",
+	Run: func(c *oriagent.Ctl, _ string) string {
+		u := c.User() // Ctl is only valid here, not in the turn's goroutine
+		err := c.RunTurn("", func(ctx context.Context, t *oriagent.Turn) error {
+			call := t.Tool("Auth", "sso.example.org")
+			if err := pause(ctx, 900); err != nil {
+				return err
+			}
+			call.Done(t.T("login.tool"))
+			u.Email = "teva.tane@example.org"
+			u.Role = t.T("login.role")
+			t.SetUser(u)
+			t.SetModels(append(demoModels, oriagent.Model{Name: "Opus 5.5 Entreprise", Desc: "model.enterprise"}))
+			b := t.Text()
+			b.Write(t.T("login.done"))
+			b.Done()
+			return nil
+		})
+		if err != nil {
+			return err.Error()
+		}
+		return ""
+	},
 }
 
 func demo(title string) *oriagent.Session {
@@ -111,6 +158,11 @@ var translations = map[string]map[string]string{
 		"key.slash":          "Ouvrir la palette de commandes",
 		"key.paletteNav":     "Naviguer, compléter, fermer la palette",
 		"key.sidebar":        "Afficher ou masquer la barre latérale",
+		"model.enterprise":   "Réservé aux comptes de l'administration, après connexion.",
+		"login.desc":         "Se connecter avec le compte de l'administration (simulé)",
+		"login.tool":         "Authentification réussie.",
+		"login.role":         "Responsable de projet (compte vérifié)",
+		"login.done":         "Connexion simulée : le profil vient de l'annuaire et un modèle réservé est disponible dans la Configuration.",
 	},
 	"en": {
 		"model.opus":         "The most capable, for complex and long tasks.",
@@ -127,6 +179,11 @@ var translations = map[string]map[string]string{
 		"key.slash":          "Open the command palette",
 		"key.paletteNav":     "Navigate, complete, close the palette",
 		"key.sidebar":        "Show or hide the sidebar",
+		"model.enterprise":   "For administration accounts, after signing in.",
+		"login.desc":         "Sign in with the administration account (simulated)",
+		"login.tool":         "Authentication succeeded.",
+		"login.role":         "Project manager (verified account)",
+		"login.done":         "Simulated sign-in: the profile now comes from the directory and a reserved model is available in the settings.",
 	},
 }
 

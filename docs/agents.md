@@ -25,8 +25,9 @@ Une simple fonction suffit, grâce à `oriagent.AgentFunc(maFonction)`.
 | `t.Attachments` | Les pièces jointes ; lire le fichier avec `Attachment.Path` |
 | `t.History` | Les échanges précédents de la session (`Role` : `"user"` ou `"assistant"`, `Text`) |
 | `t.Thinking` | `true` si la réflexion étendue est activée dans la Configuration |
+| `t.AllowCommands`, `t.AskEdits` | Les autorisations (exécuter des commandes, demander avant de modifier un fichier) : celles du projet de la session s'il en a, sinon celles de la Configuration ; c'est à l'agent de les respecter |
 | `t.Model` | Le modèle choisi par l'utilisateur (`Name`, `Desc`) |
-| `t.WorkDir` | Le dossier de travail |
+| `t.WorkDir` | Le dossier de travail : celui du projet de la session s'il en a un, sinon celui de la Configuration |
 | `t.Locale` | La langue de l'interface (`"fr"`, `"en"`…), pour répondre dans la même langue |
 
 ## Ce que l'agent écrit
@@ -90,6 +91,15 @@ sous.Finish("2 documents trouvés.") // devient la sortie de l'appel « Agent »
 
 ```go
 t.Notify("Analyse terminée")
+```
+
+### Mettre à jour le profil et les modèles
+
+Un tour de connexion (lancé par une commande `/login` avec `c.RunTurn`) peut remplacer ce qui a été fixé au démarrage :
+
+```go
+t.SetUser(oriagent.User{First: "Hina", Email: "hina@exemple.pf"})
+t.SetModels(modelesAutorises) // le modèle choisi reste sélectionné s'il existe encore
 ```
 
 ## Brancher un vrai LLM

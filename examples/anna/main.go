@@ -1,5 +1,7 @@
 // Command anna is "Anna Assistant", the demo application of the ori-agent
-// framework: it only configures the shell and provides demo data.
+// framework: it configures the shell, provides demo data, and keeps what
+// ori-agent leaves to the application (settings, profile, projects) in a
+// folder of its own (store.go).
 package main
 
 import (
@@ -30,12 +32,23 @@ func demoDoc(cwd string) string {
 	return "docs/demo.pdf"
 }
 
+// dataDir is where Anna keeps its files by default: the user's
+// configuration folder (%AppData% on Windows, ~/.config on Linux,
+// ~/Library/Application Support on macOS).
+func dataDir() string {
+	if d, err := os.UserConfigDir(); err == nil {
+		return filepath.Join(d, "anna-assistant")
+	}
+	return ".anna-assistant"
+}
+
 func main() {
 	view := flag.String("view", "chat", "initial view: chat, setup, profile or shortcuts")
 	step := flag.Int("step", 1, "initial setup step (1-4), with -view setup")
 	attach := flag.String("attach", "", "comma-separated files to attach at startup")
-	lang := flag.String("lang", "", "interface language (fr, en); default: the OS language")
+	lang := flag.String("lang", "", "interface language (fr, en); default: the saved one, else the OS language")
 	light := flag.Bool("light", false, "start in light mode")
+	data := flag.String("data", dataDir(), "folder for the saved settings, profile and projects")
 	flag.Parse()
 
 	cwd, _ := os.Getwd()
@@ -45,6 +58,19 @@ func main() {
 		files = strings.Split(*attach, ",")
 	}
 
+	// Saved settings win over the defaults; flags given on the command
+	// line win over the saved settings.
+	st := newStore(*data)
+	settings := st.settings()
+	flag.Visit(func(f *flag.Flag) {
+		switch f.Name {
+		case "lang":
+			settings.Locale = *lang
+		case "light":
+			settings.Dark = !*light
+		}
+	})
+
 	agent := sim.New()
 	agent.DocName = "ANNA.md"
 
@@ -52,26 +78,32 @@ func main() {
 		AppName:  "Anna Assistant",
 		Logo:     logo,
 		Agent:    agent,
-		Commands: agent.Commands(), // /review and /init
+		Commands: append(agent.Commands(), loginCommand), // /review, /init, /login
 		Pages:    []oriagent.Page{shortcutsPage},
 
 		// Interface language: the framework's catalogs, plus the simulated
 		// agent's and this app's own texts (demo.go).
-		Locale:       *lang,
-		LightMode:    *light,
 		Translations: i18n.Merge(sim.Translations, translations),
 
-		Models: []oriagent.Model{ // descriptions are translation keys
-			{Name: "Opus 5.5", Desc: "model.opus"},
-			{Name: "Sonnet 5.5", Desc: "model.sonnet"},
-			{Name: "Haiku 5.5", Desc: "model.haiku"},
-		},
-		User: oriagent.User{
-			First: "Teva", Last: "Tane", Email: "teva.tane@example.org",
+		// Configuration page values, restored and saved by the app.
+		Settings:   &settings,
+		OnSettings: st.saveSettings,
+
+		Models: demoModels,
+		User: st.profile(oriagent.User{
+			First: "Teva", Last: "TANE", Email: "teva.tane@example.org",
 			Service: "Direction du numérique", Role: "Responsable de projet",
-		},
-		Devices:  demoDevices(),
-		Projects: demoProjects(filepath.Base(cwd), doc),
+		}),
+		ProfileLock: oriagent.ProfileLock{Email: true}, // as if it came from a directory
+		OnProfile:   st.saveProfile,
+		OnLogout:    st.logout,
+		Devices:     demoDevices(),
+
+		// Demo projects first, then the ones created from the sidebar.
+		Projects:        append(demoProjects(cwd, doc), st.projects()...),
+		OnNewProject:    st.newProject,
+		OnUpdateProject: st.updateProject,
+		OnDeleteProject: st.deleteProject,
 
 		StartView: *view,
 		SetupStep: *step,

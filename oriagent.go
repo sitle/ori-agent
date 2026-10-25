@@ -52,6 +52,13 @@ type User struct {
 	First, Last, Email, Service, Role string
 }
 
+// ProfileLock makes Profile page fields read-only, for values the
+// application does not let the user change (from a directory, an identity
+// provider…).
+type ProfileLock struct {
+	First, Last, Email, Service, Role bool
+}
+
 // Page is an extra screen reached from the sidebar. Layout draws the content;
 // the shell adds the title and the centered, scrollable column. tr translates
 // in the current interface language.
@@ -66,6 +73,27 @@ type Features struct {
 	Voice, Pomodoro, Attachments, Preview bool
 	Setup, Profile, ThemeToggle           bool
 	BuiltinCommands                       bool
+}
+
+// Settings are the values of the Configuration page, so that an application
+// can restore them at startup (Config.Settings) and keep them when the user
+// changes them (Config.OnSettings). The JSON tags make them easy to save in
+// a file; ori-agent itself stores nothing.
+type Settings struct {
+	WorkDir       string `json:"workDir,omitempty"` // ignored at startup if it is not a folder
+	AllowCommands bool   `json:"allowCommands"`
+	AskEdits      bool   `json:"askEdits"`
+	Thinking      bool   `json:"thinking"` // extended thinking
+	Notifications bool   `json:"notifications"`
+	Model         string `json:"model,omitempty"` // a Model.Name; empty or unknown means the first model
+	Dark          bool   `json:"dark"`
+	Locale        string `json:"locale,omitempty"` // ignored at startup if no catalog matches
+}
+
+// DefaultSettings are the values used when Config.Settings is nil. Decode a
+// saved file over them, so that missing fields keep their default.
+func DefaultSettings() Settings {
+	return Settings{AllowCommands: true, AskEdits: true, Thinking: true, Dark: true}
 }
 
 type PomodoroConfig struct {
@@ -90,14 +118,48 @@ type Config struct {
 	Translations   map[string]map[string]string
 	OnLocale       func(locale string) // called after the language changes
 
-	Agent    Agent // default: a placeholder that explains no agent is set
-	WorkDir  string
-	Models   []Model
-	User     User
-	Devices  []*Device  // profile's connected devices; empty hides the section
-	Projects []*Project // demo data; default: one empty session
-	Commands []*Command // added to the built-in ones
-	Pages    []Page
+	// Settings, when set, are the initial values of the Configuration page
+	// and take precedence over WorkDir, LightMode and Locale (a WorkDir or
+	// Locale that cannot be used keeps the Config one). OnSettings receives
+	// the new values whenever one of them changes: a setup toggle, model,
+	// theme or language, the title bar theme button, /model, /theme, /lang,
+	// or the working directory applied by the setup's Finish. It is called
+	// at the end of the frame, on the UI goroutine with the state locked:
+	// it must return quickly (save in a goroutine of its own if needed).
+	Settings   *Settings
+	OnSettings func(Settings)
+
+	Agent   Agent // default: a placeholder that explains no agent is set
+	WorkDir string
+	Models  []Model
+	User    User
+	// OnProfile is called with the edited fields when the user saves the
+	// Profile page, and OnLogout when they sign out from it. Both run on a
+	// goroutine of their own while the page buttons wait; the User returned
+	// by OnProfile (which may normalize it) replaces the fields, an error is
+	// shown and keeps the edits. Nil keeps the profile in memory and only
+	// simulates the sign-out.
+	OnProfile   func(ctx context.Context, u User) (User, error)
+	OnLogout    func(ctx context.Context) error
+	ProfileLock ProfileLock // read-only Profile page fields
+	// OnNewProject creates a project, such as a workspace folder, from the
+	// name and description the user typed. When it is set, the sidebar's
+	// main button opens that form instead of starting a session (the + of
+	// each project starts one). It runs on a goroutine of its own; an error
+	// is shown in the form, which keeps the input.
+	OnNewProject func(ctx context.Context, name, description string) (*Project, error)
+	// OnUpdateProject saves the edits made on a project's page (opened by
+	// the gear of its sidebar row) and returns them as kept, and
+	// OnDeleteProject removes a project that is not Permanent. Both run on
+	// a goroutine of their own; an error stays on the page. Without
+	// OnUpdateProject the edits only apply in memory; without
+	// OnDeleteProject the page has no remove button.
+	OnUpdateProject func(ctx context.Context, p *Project, edit ProjectEdit) (ProjectEdit, error)
+	OnDeleteProject func(ctx context.Context, p *Project) error
+	Devices         []*Device  // profile's connected devices; empty hides the section
+	Projects        []*Project // demo data; default: one empty session
+	Commands        []*Command // added to the built-in ones
+	Pages           []Page
 
 	Dictation Dictation // default: simulated
 	Pomodoro  PomodoroConfig

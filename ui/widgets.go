@@ -116,6 +116,9 @@ func (t *Theme) Field(gtx C, label string, ed *widget.Editor, hint string) D {
 					e := material.Editor(t.Material, ed, hint)
 					e.TextSize = 14
 					e.Color, e.HintColor = t.Text, t.Muted
+					if ed.ReadOnly {
+						e.Color = t.Muted
+					}
 					return e.Layout(gtx)
 				})
 			})

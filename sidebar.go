@@ -42,7 +42,13 @@ func (a *App) layoutSidebar(gtx C) D {
 							return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 								layout.Rigid(th.Label(16, "+", th.Muted, font.Normal).Layout),
 								ui.HSpace(8),
-								layout.Rigid(th.Label(14, a.t("session.new"), th.Text, font.Medium).Layout),
+								layout.Rigid(func(gtx C) D {
+									label := a.t("session.new")
+									if a.cfg.OnNewProject != nil {
+										label = a.t("project.new")
+									}
+									return th.Label(14, label, th.Text, font.Medium).Layout(gtx)
+								}),
 							)
 						})
 					})
@@ -204,21 +210,52 @@ func (a *App) projectRow(gtx C, r treeRow) D {
 		in.Top = 0
 	}
 	return in.Layout(gtx, func(gtx C) D {
-		return p.btn.Layout(gtx, func(gtx C) D {
-			c := th.Muted
-			if p.btn.Hovered() {
-				c = th.Text
-			}
-			dir := 0
-			if !p.Open {
-				dir = 1
-			}
-			return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
-				layout.Rigid(th.Label(12, p.Name, c, font.SemiBold).Layout),
-				ui.HSpace(6),
-				layout.Rigid(func(gtx C) D { return ui.SmallChevron(gtx, c, dir) }),
-			)
-		})
+		return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
+			layout.Flexed(1, func(gtx C) D {
+				return p.btn.Layout(gtx, func(gtx C) D {
+					c := th.Muted
+					if p.btn.Hovered() {
+						c = th.Text
+					}
+					dir := 0
+					if !p.Open {
+						dir = 1
+					}
+					return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
+						layout.Flexed(1, func(gtx C) D {
+							return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
+								layout.Rigid(func(gtx C) D { return ui.OneLine(gtx, th.Label(12, p.Name, c, font.SemiBold)) }),
+								ui.HSpace(6),
+								layout.Rigid(func(gtx C) D { return ui.SmallChevron(gtx, c, dir) }),
+							)
+						}),
+					)
+				})
+			}),
+			// The gear opens the project's page, when the application manages
+			// projects; + starts a session in this project.
+			layout.Rigid(func(gtx C) D {
+				if a.cfg.OnUpdateProject == nil {
+					return D{}
+				}
+				return p.manage.Layout(gtx, func(gtx C) D {
+					bg, c := th.Sidebar, th.Muted
+					if p.manage.Hovered() {
+						bg, c = th.Hover, th.Text
+					}
+					return ui.Card(gtx, bg, 6, layout.UniformInset(5), func(gtx C) D { return ui.Gear(gtx, c, 13) })
+				})
+			}),
+			layout.Rigid(func(gtx C) D {
+				return p.add.Layout(gtx, func(gtx C) D {
+					bg, c := th.Sidebar, th.Muted
+					if p.add.Hovered() {
+						bg, c = th.Hover, th.Text
+					}
+					return ui.Card(gtx, bg, 6, layout.Inset{Left: 7, Right: 7, Top: 1, Bottom: 1}, th.Label(15, "+", c, font.Normal).Layout)
+				})
+			}),
+		)
 	})
 }
 

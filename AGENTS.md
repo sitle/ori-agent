@@ -25,18 +25,19 @@ Linux needs Gio's system packages (`gcc pkg-config libwayland-dev libx11-dev lib
 
 | Path | Content |
 |---|---|
-| `oriagent.go` | `Config`, `Run`, public types (`Model`, `User`, `Page`, `Features`) |
+| `oriagent.go` | `Config`, `Run`, public types (`Model`, `User`, `Page`, `Features`, `Settings`, `ProfileLock`) |
 | `app.go` | `App` state, frame loop, view routing, locale switching |
 | `agent.go` | `Agent`, `Turn` API, `startTurn` (goroutine, cancellation, cleanup) |
 | `model.go` | `Project`, `Session`, `Message`, constructors |
+| `project.go`, `projectpage.go` | new-project form (`OnNewProject`), project page (`OnUpdateProject`, `OnDeleteProject`), `Permissions`, per-project work dir |
 | `chat.go`, `sidebar.go`, `titlebar.go`, `pages.go` | UI areas |
 | `commands.go`, `ctl.go` | slash commands, palette, `Ctl` |
 | `voice.go`, `pomodoro.go`, `upload.go`, `previewpane.go` | features |
 | `locales.go` | **all** built-in UI strings, `fr` and `en` |
-| `ui/` | widget kit (must not import the root package) |
+| `ui/` | widget kit, including the Markdown renderer (`ui/markdown.go`); must not import the root package |
 | `theme/` | palettes; `i18n/` translations; `preview/` document preview; `sim/` simulated agent |
 | `docs/` | human documentation, in French |
-| `examples/` | `minimal`, `anna` |
+| `examples/` | `minimal`; `anna` (full demo, with `store.go` saving settings, profile and projects) |
 
 ## Architecture rules
 
