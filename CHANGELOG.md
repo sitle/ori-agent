@@ -4,6 +4,8 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [0.2.0] - 2026-10-25
+
 ### Ajouté
 
 - `Settings`, `Config.Settings` et `Config.OnSettings` : l'application restaure au démarrage les réglages de la page Configuration (dossier de travail, autorisations, réflexion étendue, notifications, modèle, thème, langue) et reçoit les nouvelles valeurs à chaque changement pour les enregistrer. `DefaultSettings()` donne les valeurs par défaut.
@@ -52,5 +54,6 @@ Première version publique.
 - Documentation en français dans `docs/` : prise en main, écrire un agent, personnalisation, langues, composants, architecture.
 - Documentation pour les assistants de code : skill `skills/ori-agent/SKILL.md`, `llms.txt`, `AGENTS.md`.
 
-[Non publié]: https://github.com/sitle/ori-agent/compare/v0.1.0...HEAD
+[Non publié]: https://github.com/sitle/ori-agent/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/sitle/ori-agent/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/sitle/ori-agent/releases/tag/v0.1.0
