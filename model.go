@@ -1,0 +1,141 @@
+package oriagent
+
+import (
+	"context"
+
+	"gioui.org/widget"
+)
+
+// Kind is the type of a transcript item.
+type Kind int
+
+const (
+	KindUser      Kind = iota // user bubble, with optional attachments
+	KindAssistant             // assistant text
+	KindThinking              // collapsible reasoning
+	KindTool                  // tool call with expandable output
+	KindTasks                 // task list
+	KindCommand               // slash command and its output
+	KindNotice                // interruption or error
+)
+
+type TaskStatus int
+
+const (
+	TaskPending TaskStatus = iota
+	TaskRunning
+	TaskDone
+)
+
+type Task struct {
+	Text   string
+	Status TaskStatus
+}
+
+// Message is one transcript item. Agents create them through a Turn; demo
+// transcripts can build them directly.
+type Message struct {
+	Kind     Kind
+	Text     string
+	ToolName string
+	ToolArg  string
+	Output   string
+	Running  bool
+	Tasks    []Task
+	Secs     int      // thinking duration
+	Sub      *Session // subagent behind an Agent tool call: a click opens it
+	FilePath string   // file behind a tool call: a click previews it
+	Error    bool     // KindNotice: an error rather than an interruption
+	Expanded bool     // tool output or reasoning shown
+
+	Attachments []*Attachment
+
+	toggle, toggleTail, open widget.Clickable
+}
+
+// Session is a conversation; Children are the subagents it spawned.
+type Session struct {
+	Title    string
+	Messages []*Message
+	Children []*Session
+	Busy     bool
+	Open     bool // subagents shown in the sidebar
+
+	project *Project
+	parent  *Session
+	cancel  context.CancelFunc
+	btn     widget.Clickable
+	chev    widget.Clickable
+}
+
+func (s *Session) add(m *Message) { s.Messages = append(s.Messages, m) }
+
+func (s *Session) Project() *Project { return s.project }
+func (s *Session) Parent() *Session  { return s.parent }
+
+// Spawn attaches a subagent session to s (for building demo trees; agents use
+// Turn.Subagent).
+func (s *Session) Spawn(title string) *Session {
+	c := &Session{Title: title, project: s.project, parent: s}
+	s.Children = append(s.Children, c)
+	s.Open = true
+	return c
+}
+
+// Project groups sessions in the sidebar.
+type Project struct {
+	Name     string
+	Sessions []*Session
+	Open     bool
+
+	btn widget.Clickable
+}
+
+// NewProject returns an open project holding sessions (first on top).
+func NewProject(name string, sessions ...*Session) *Project {
+	p := &Project{Name: name, Open: true}
+	for i := len(sessions) - 1; i >= 0; i-- {
+		p.Add(sessions[i])
+	}
+	return p
+}
+
+// Add puts s at the top of the project.
+func (p *Project) Add(s *Session) {
+	var walk func(s *Session)
+	walk = func(s *Session) {
+		s.project = p
+		for _, c := range s.Children {
+			walk(c)
+		}
+	}
+	walk(s)
+	p.Sessions = append([]*Session{s}, p.Sessions...)
+}
+
+// Message constructors, for demo transcripts.
+
+func UserMsg(text string, atts ...*Attachment) *Message {
+	return &Message{Kind: KindUser, Text: text, Attachments: atts}
+}
+func TextMsg(text string) *Message { return &Message{Kind: KindAssistant, Text: text} }
+func ThinkingMsg(text string, secs int) *Message {
+	return &Message{Kind: KindThinking, Text: text, Secs: secs}
+}
+func ToolMsg(name, arg, output string) *Message {
+	return &Message{Kind: KindTool, ToolName: name, ToolArg: arg, Output: output}
+}
+func TasksMsg(tasks ...Task) *Message { return &Message{Kind: KindTasks, Tasks: tasks} }
+
+func walkSessions(ps []*Project, f func(*Session)) {
+	var walk func(ss []*Session)
+	walk = func(ss []*Session) {
+		for _, s := range ss {
+			f(s)
+			walk(s.Children)
+		}
+	}
+	for _, p := range ps {
+		walk(p.Sessions)
+	}
+}

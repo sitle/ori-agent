@@ -1,0 +1,184 @@
+# Écrire un agent
+
+L'agent est la partie que vous écrivez : il produit les réponses. ori-agent l'appelle à chaque message et affiche ce qu'il écrit.
+
+## Le contrat
+
+```go
+type Agent interface {
+	Run(ctx context.Context, t *oriagent.Turn) error
+}
+```
+
+Une simple fonction suffit, grâce à `oriagent.AgentFunc(maFonction)`.
+
+- `Run` est appelé dans **sa propre goroutine**, une fois par message envoyé. L'interface reste fluide pendant que l'agent travaille.
+- Toutes les méthodes de `Turn` peuvent être appelées depuis n'importe quelle goroutine : ori-agent s'occupe des verrous et du rafraîchissement de l'écran.
+- `Run` doit s'arrêter rapidement quand `ctx` est annulé (bouton Arrêter). ori-agent referme alors ce qui était en cours et affiche « Interrompu. ».
+- Une erreur renvoyée par `Run` s'affiche en rouge dans le fil.
+
+## Ce que l'agent reçoit
+
+| Champ | Contenu |
+|---|---|
+| `t.Prompt` | Le message de l'utilisateur |
+| `t.Attachments` | Les pièces jointes ; lire le fichier avec `Attachment.Path` |
+| `t.History` | Les échanges précédents de la session (`Role` : `"user"` ou `"assistant"`, `Text`) |
+| `t.Thinking` | `true` si la réflexion étendue est activée dans la Configuration |
+| `t.Model` | Le modèle choisi par l'utilisateur (`Name`, `Desc`) |
+| `t.WorkDir` | Le dossier de travail |
+| `t.Locale` | La langue de l'interface (`"fr"`, `"en"`…), pour répondre dans la même langue |
+
+## Ce que l'agent écrit
+
+### Du texte en streaming
+
+```go
+b := t.Text()
+b.Write("Bonjour ")
+b.Write("le monde.")
+b.Done()
+```
+
+### Une réflexion
+
+Affichée pendant qu'elle s'écrit, puis repliée en « Réflexion · 3 s », que l'utilisateur peut rouvrir.
+
+```go
+if t.Thinking {
+	th := t.Think()
+	th.Write("Je dois d'abord lire le fichier de configuration…")
+	th.Done()
+}
+```
+
+### Des appels d'outils
+
+Un appel s'affiche « en cours », puis devient dépliable avec sa sortie. Avec `File`, son argument devient un lien qui ouvre le fichier dans l'aperçu.
+
+```go
+call := t.Tool("Read", "config.yaml").File("/chemin/vers/config.yaml")
+contenu, err := os.ReadFile("/chemin/vers/config.yaml")
+if err != nil {
+	call.Done(err.Error())
+	return err
+}
+call.Done(string(contenu))
+```
+
+Les lignes de sortie qui commencent par `+` ou `-` sont colorées comme un diff.
+
+### Une liste de tâches
+
+```go
+taches := t.Tasks("Lire le code", "Corriger", "Lancer les tests") // la première démarre
+taches.Advance(0)                      // 0 terminée, 1 démarre
+taches.Set(2, oriagent.TaskDone)       // état explicite
+```
+
+### Des sous-agents
+
+Un sous-agent est une session enfant : il apparaît sous la session dans la barre latérale, et comme un appel « Agent » cliquable dans le fil. Il s'écrit avec la même API qu'un tour normal.
+
+```go
+sous := t.Subagent("Explorer la doc", "Lis les fichiers Markdown et résume-les.")
+sous.Tool("Glob", "**/*.md").Done("README.md\ndocs/guide.md")
+sous.Finish("2 documents trouvés.") // devient la sortie de l'appel « Agent »
+```
+
+### Une notification
+
+```go
+t.Notify("Analyse terminée")
+```
+
+## Brancher un vrai LLM
+
+La plupart des API de LLM renvoient un flux d'événements : morceaux de texte, morceaux de réflexion, demandes d'outil, fin de réponse. Il suffit de traduire chaque événement vers le `Turn`. Voici la structure, avec un client imaginaire `llm` à remplacer par celui de votre fournisseur :
+
+```go
+func (a *MonAgent) Run(ctx context.Context, t *oriagent.Turn) error {
+	messages := toMessages(t.History, t.Prompt) // votre conversion
+
+	for {
+		stream, err := a.client.Stream(ctx, llm.Request{
+			Model:    t.Model.Name,
+			Messages: messages,
+			Thinking: t.Thinking,
+			Tools:    a.tools,
+		})
+		if err != nil {
+			return err
+		}
+
+		var text, thought *oriagent.Block
+		var toolCalls []llm.ToolCall
+		for ev := range stream.Events() {
+			switch ev.Type {
+			case "thinking_delta":
+				if thought == nil {
+					thought = t.Think()
+				}
+				thought.Write(ev.Text)
+			case "text_delta":
+				if thought != nil {
+					thought.Done()
+					thought = nil
+				}
+				if text == nil {
+					text = t.Text()
+				}
+				text.Write(ev.Text)
+			case "tool_use":
+				toolCalls = append(toolCalls, ev.ToolCall)
+			}
+		}
+		if text != nil {
+			text.Done()
+		}
+		if err := stream.Err(); err != nil {
+			return err // inclut l'annulation : ctx est transmis au client
+		}
+		if len(toolCalls) == 0 {
+			return nil // réponse finale
+		}
+
+		// Exécuter les outils demandés, les afficher, renvoyer les résultats.
+		for _, tc := range toolCalls {
+			call := t.Tool(tc.Name, tc.Summary())
+			result := a.execute(ctx, tc)
+			call.Done(result)
+			messages = append(messages, llm.ToolResult(tc.ID, result))
+		}
+	}
+}
+```
+
+Points d'attention :
+
+- **Transmettez `ctx` au client HTTP** : le bouton Arrêter annule alors la requête en cours.
+- **Ne gardez pas d'état global** entre deux tours : tout ce dont l'agent a besoin est dans le `Turn`, ou dans votre structure d'agent.
+- **Une session à la fois** : un nouveau message est refusé tant que le tour en cours n'est pas terminé dans cette session ; d'autres sessions peuvent travailler en parallèle.
+
+## Lancer un tour depuis une commande
+
+Une commande peut démarrer un tour avec une fonction de votre choix, par exemple une revue de code :
+
+```go
+revue := &oriagent.Command{
+	Name: "revue",
+	Desc: "Relire le code",
+	Run: func(c *oriagent.Ctl, _ string) string {
+		if err := c.RunTurn("", monAgent.Revue); err != nil {
+			return err.Error()
+		}
+		return "Revue lancée."
+	},
+}
+```
+
+`RunTurn(prompt, nil)` utilise l'agent configuré.
+
+## S'inspirer de l'agent simulé
+
+Le paquet [`sim`](../sim/sim.go) est un agent complet sans modèle : réflexion, liste de tâches, sous-agent qui explore le dossier, lecture des pièces jointes, commandes `/review` et `/init`, réponses bilingues. C'est le meilleur point de départ pour structurer le vôtre.
