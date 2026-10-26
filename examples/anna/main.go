@@ -112,6 +112,9 @@ func main() {
 		OnDeleteProject: st.deleteProject,
 		ProjectFiles:    st.projectFiles,
 
+		// Word documents in the preview pane (convert.go).
+		Convert: convert,
+
 		StartView: *view,
 		SetupStep: *step,
 		Attach:    files,

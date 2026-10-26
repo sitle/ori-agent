@@ -162,6 +162,12 @@ Ils s'exécutent dans une goroutine ; une erreur reste affichée dans le formula
 
 **`ProjectFiles(projet)`** ajoute à la page d'un projet une section « Fichiers » : l'application renvoie une liste de `ProjectFile` (`Name`, `Detail` pour la taille, la date ou une empreinte, `Path`, `Warning` affiché en rouge). Un clic sur un fichier dont `Path` est renseigné l'ouvre dans l'aperçu, à côté de la page. La liste est demandée dans une goroutine à chaque ouverture de la page ; un message d'attente s'affiche en attendant.
 
+**`Convert`** fournit l'aperçu des fichiers que le panneau ne lit pas lui-même : documents Word, Excel, PowerPoint, ou tout autre format binaire. La fonction reçoit le chemin et rend un `preview.Converted` : `PDF` (les octets d'un PDF, affiché page par page comme un PDF ordinaire) ou `Markdown` (affiché comme un fichier Markdown), avec un `Label` pour l'en-tête du panneau (« Word »). Elle tourne dans une goroutine, « Conversion du document… » s'affiche en attendant ; une erreur est affichée dans le panneau, et `nil` laisse le fichier affiché comme binaire. Les textes, images et PDF ne passent jamais par elle.
+
+L'exemple Anna ([`examples/anna/convert.go`](../examples/anna/convert.go)) convertit ainsi les documents Word (`.docx`) en Markdown, en lisant leur XML, sans dépendance : titres, listes et paragraphes. Pour les autres formats, une application peut passer par LibreOffice (`soffice --headless --convert-to pdf`) et rendre le PDF obtenu. Essayez avec `/open examples/anna/docs/note-de-cadrage.docx`.
+
+![Un document Word dans l'aperçu, converti en Markdown](images/apercu-word.png)
+
 ![Page d'un projet avec ses fichiers et l'aperçu de l'un d'eux](images/page-projet.png)
 
 Pour tous ces rappels, l'exemple [`examples/anna/store.go`](../examples/anna/store.go) en donne une version complète : un dossier par projet, marqué par un fichier `project.json`, rechargé au démarrage, et une suppression qui ne touche jamais un dossier que l'application n'a pas créé.

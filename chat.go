@@ -234,7 +234,7 @@ func (a *App) openMessage(m *Message) {
 			path = filepath.Join(a.sessionWorkDir(a.cur), path)
 		}
 	}
-	a.showPreview(preview.Open(path, fallback))
+	a.showPreview(a.openDoc(path, fallback))
 }
 
 func (a *App) toolCall(gtx C, m *Message) D {

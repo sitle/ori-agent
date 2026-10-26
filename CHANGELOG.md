@@ -4,6 +4,18 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [0.5.0] - 2026-10-26
+
+### Ajouté
+
+- `Config.Convert` et `preview.Converter` : l'application fournit l'aperçu des fichiers que le panneau ne lit pas lui-même (Word, Excel, PowerPoint…), sous forme de PDF ou de Markdown. La conversion se fait en arrière-plan, avec « Conversion du document… » en attendant ; l'en-tête du panneau montre le libellé donné (« Word · 3 p. ») et, pendant la conversion, l'extension du fichier (« DOCX »). `preview.OpenWith` fait de même hors de l'application.
+- L'exemple Anna affiche les documents Word (`.docx`) convertis en Markdown, sans dépendance ; document de démonstration `examples/anna/docs/note-de-cadrage.docx`.
+- Capture de l'aperçu d'un document Word dans la documentation.
+
+### Corrigé
+
+- Un texte de plus de 256 Ko dont la coupure tombait au milieu d'un caractère accentué était affiché comme un fichier binaire.
+
 ## [0.4.0] - 2026-10-26
 
 ### Ajouté
@@ -98,7 +110,8 @@ Première version publique.
 - Documentation en français dans `docs/` : prise en main, écrire un agent, personnalisation, langues, composants, architecture.
 - Documentation pour les assistants de code : skill `skills/ori-agent/SKILL.md`, `llms.txt`, `AGENTS.md`.
 
-[Non publié]: https://github.com/sitle/ori-agent/compare/v0.4.0...HEAD
+[Non publié]: https://github.com/sitle/ori-agent/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/sitle/ori-agent/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/sitle/ori-agent/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/sitle/ori-agent/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/sitle/ori-agent/compare/v0.2.1...v0.2.2

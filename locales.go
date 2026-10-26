@@ -118,8 +118,11 @@ var catalogFR = map[string]string{
 	"preview.image":        "Image · %d×%d",
 	"preview.pdf":          "PDF",
 	"preview.pdfPages":     "PDF · %d p.",
+	"preview.pages":        "%d p.",
 	"preview.rendering":    "Rendu du PDF…",
 	"preview.error":        "Impossible de lire le PDF : %s",
+	"preview.converting":   "Conversion du document…",
+	"preview.convertError": "Impossible de convertir le document : %s",
 	"preview.notFound":     "fichier introuvable : %s",
 
 	"palette.header":    "COMMANDES",
@@ -347,7 +350,10 @@ var catalogEN = map[string]string{
 	"preview.pdf":          "PDF",
 	"preview.pdfPages":     "PDF · %d pp.",
 	"preview.rendering":    "Rendering PDF…",
+	"preview.pages":        "%d pp.",
 	"preview.error":        "Could not read the PDF: %s",
+	"preview.converting":   "Converting the document…",
+	"preview.convertError": "Could not convert the document: %s",
 	"preview.notFound":     "file not found: %s",
 
 	"palette.header":    "COMMANDS",

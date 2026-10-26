@@ -11,6 +11,12 @@ import (
 	"github.com/sitle/ori-agent/preview"
 )
 
+// openDoc opens a file for the preview pane, with the application's
+// converter for the documents the pane does not read itself.
+func (a *App) openDoc(path, fallback string) *preview.Doc {
+	return preview.OpenWith(path, fallback, a.cfg.Convert)
+}
+
 // showPreview opens d in the right pane, rendering PDF pages in background.
 func (a *App) showPreview(d *preview.Doc) {
 	if d == nil || a.cfg.Disable.Preview {

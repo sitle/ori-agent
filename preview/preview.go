@@ -46,8 +46,10 @@ const (
 // check Close.Clicked to know when the user closed it.
 type Doc struct {
 	Name, Path string
-	Kind       Kind
-	Close      widget.Clickable
+	// Kind may change while Load converts the document (OpenWith): read it
+	// on the goroutine that draws the pane.
+	Kind  Kind
+	Close widget.Clickable
 	// T translates the pane's texts (keys "preview.*"); nil means English.
 	T i18n.Translator
 
@@ -58,7 +60,9 @@ type Doc struct {
 	imgSize image.Point
 
 	pdfData []byte
-	mu      sync.Mutex // guards the PDF fields below, filled by Load
+	conv    Converter  // converts the file in Load (OpenWith)
+	label   string     // kind shown in the header, from the converter
+	mu      sync.Mutex // guards Kind once Load started, and the fields below
 	loading bool
 	pages   []paint.ImageOp
 	sizes   []image.Point
@@ -66,6 +70,21 @@ type Doc struct {
 
 	list widget.List
 }
+
+// Converted is what a Converter makes of a file the pane cannot show by
+// itself: the pages of a PDF, or Markdown text.
+type Converted struct {
+	PDF      []byte
+	Markdown string
+	// Label is the kind shown in the header ("Word", "Excel"); the page
+	// count follows it for a PDF.
+	Label string
+}
+
+// Converter renders, in the background, a document the pane does not read
+// (a Word file, a spreadsheet, a presentation). It returns nil for a file
+// it does not handle, which is then shown as a binary file.
+type Converter func(path string) (*Converted, error)
 
 func ext(path string) string { return strings.ToLower(strings.TrimPrefix(filepath.Ext(path), ".")) }
 
@@ -87,7 +106,11 @@ func DecodeImage(path string) (image.Image, bool) {
 // Open loads path. For text documents, fallback is shown when the file can't
 // be read (nil is returned if there is no fallback either). PDF pages are
 // rendered by Load.
-func Open(path, fallback string) *Doc {
+func Open(path, fallback string) *Doc { return OpenWith(path, fallback, nil) }
+
+// OpenWith is Open, with conv for the files that are not text, images or
+// PDF: Load converts them in the background.
+func OpenWith(path, fallback string, conv Converter) *Doc {
 	d := &Doc{Name: filepath.Base(path), Path: path}
 	d.list.Axis = layout.Vertical
 	switch e := ext(path); {
@@ -110,9 +133,17 @@ func Open(path, fallback string) *Doc {
 	if data, err := os.ReadFile(path); err == nil {
 		if len(data) > 256<<10 {
 			data = data[:256<<10]
+			// The cut may fall inside a character: drop its first bytes, so
+			// that a long text is not taken for a binary file.
+			for i := 0; i < utf8.UTFMax-1 && !utf8.Valid(data); i++ {
+				data = data[:len(data)-1]
+			}
 		}
 		if utf8.Valid(data) {
 			src = string(data)
+		} else if conv != nil {
+			d.Kind, d.conv, d.loading = PDF, conv, true
+			return d
 		} else {
 			src = "(binary file)"
 		}
@@ -128,13 +159,18 @@ func Open(path, fallback string) *Doc {
 	return d
 }
 
-// Load renders PDF pages in the background and calls invalidate when done.
-// It does nothing for other kinds.
+// Load renders PDF pages (or converts the document first) in the
+// background and calls invalidate when done. It does nothing for other
+// kinds.
 func (d *Doc) Load(invalidate func()) {
 	if d.Kind != PDF {
 		return
 	}
 	go func() {
+		if d.conv != nil && !d.convert() {
+			invalidate()
+			return
+		}
 		// 144 DPI gives ~1200px wide A4 pages: sharp once scaled to the pane.
 		imgs, err := RenderPDF(d.pdfData, 144)
 		d.mu.Lock()
@@ -151,6 +187,28 @@ func (d *Doc) Load(invalidate func()) {
 	}()
 }
 
+// convert runs the converter; it reports whether there is a PDF to render.
+func (d *Doc) convert() bool {
+	c, err := d.conv(d.Path)
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	switch {
+	case err != nil:
+		d.loading, d.err = false, err.Error()
+		return false
+	case c == nil:
+		d.Kind, d.loading, d.lines = Code, false, []string{"(binary file)"}
+		return false
+	case len(c.PDF) > 0:
+		d.pdfData, d.label = c.PDF, c.Label
+		return true
+	default:
+		src := strings.ReplaceAll(c.Markdown, "\r\n", "\n")
+		d.Kind, d.loading, d.blocks, d.label = Markdown, false, ui.ParseMarkdown(src), c.Label
+		return false
+	}
+}
+
 var lineNumber = regexp.MustCompile(`^\s*\d+  `)
 
 // StripLineNumbers undoes "   1  " prefixes, as in a Read tool output.
@@ -163,13 +221,16 @@ func StripLineNumbers(s string) string {
 }
 
 var english = map[string]string{
-	"preview.code":      "Code",
-	"preview.markdown":  "Markdown",
-	"preview.image":     "Image · %d×%d",
-	"preview.pdf":       "PDF",
-	"preview.pdfPages":  "PDF · %d pp.",
-	"preview.rendering": "Rendering PDF…",
-	"preview.error":     "Could not read the PDF: %s",
+	"preview.code":         "Code",
+	"preview.markdown":     "Markdown",
+	"preview.image":        "Image · %d×%d",
+	"preview.pdf":          "PDF",
+	"preview.pdfPages":     "PDF · %d pp.",
+	"preview.pages":        "%d pp.",
+	"preview.rendering":    "Rendering PDF…",
+	"preview.error":        "Could not read the PDF: %s",
+	"preview.converting":   "Converting the document…",
+	"preview.convertError": "Could not convert the document: %s",
 }
 
 func (d *Doc) t(key string, args ...any) string {
@@ -180,15 +241,25 @@ func (d *Doc) t(key string, args ...any) string {
 }
 
 func (d *Doc) kindLabel() string {
-	switch d.Kind {
+	d.mu.Lock()
+	kind, label, n := d.Kind, d.label, len(d.pages)
+	d.mu.Unlock()
+	if label != "" {
+		if kind == PDF && n > 0 {
+			return label + " · " + d.t("preview.pages", n)
+		}
+		return label
+	}
+	if kind == PDF && d.conv != nil && n == 0 {
+		// Still converting, or failed: the file's own kind, not "PDF".
+		return strings.ToUpper(ext(d.Path))
+	}
+	switch kind {
 	case Markdown:
 		return d.t("preview.markdown")
 	case Image:
 		return d.t("preview.image", d.imgSize.X, d.imgSize.Y)
 	case PDF:
-		d.mu.Lock()
-		n := len(d.pages)
-		d.mu.Unlock()
 		if n > 0 {
 			return d.t("preview.pdfPages", n)
 		}
@@ -225,7 +296,10 @@ func (d *Doc) Layout(gtx C, th *ui.Theme) D {
 		}),
 		layout.Rigid(th.HLine),
 		layout.Flexed(1, func(gtx C) D {
-			switch d.Kind {
+			d.mu.Lock()
+			kind := d.Kind
+			d.mu.Unlock()
+			switch kind {
 			case PDF:
 				return d.layoutPDF(gtx, th)
 			case Image:
@@ -282,16 +356,25 @@ func (d *Doc) layoutPDF(gtx C, th *ui.Theme) D {
 	paint.FillShape(gtx.Ops, th.Code, clip.Rect{Max: gtx.Constraints.Max}.Op())
 	d.mu.Lock()
 	loading, pages, sizes, errMsg := d.loading, d.pages, d.sizes, d.err
+	converting := d.conv != nil && d.pdfData == nil
 	d.mu.Unlock()
 	if loading || len(pages) == 0 {
 		return layout.Center.Layout(gtx, func(gtx C) D {
 			if errMsg != "" {
-				return layout.UniformInset(24).Layout(gtx, th.Label(13, d.t("preview.error", errMsg), th.DiffDel, font.Normal).Layout)
+				key := "preview.error"
+				if d.conv != nil {
+					key = "preview.convertError"
+				}
+				return layout.UniformInset(24).Layout(gtx, th.Label(13, d.t(key, errMsg), th.DiffDel, font.Normal).Layout)
+			}
+			msg := d.t("preview.rendering")
+			if converting {
+				msg = d.t("preview.converting")
 			}
 			return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 				layout.Rigid(func(gtx C) D { return ui.Dot(gtx, ui.Pulse(gtx, th.Accent), 9) }),
 				ui.HSpace(10),
-				layout.Rigid(th.Label(13, d.t("preview.rendering"), th.Muted, font.Normal).Layout),
+				layout.Rigid(th.Label(13, msg, th.Muted, font.Normal).Layout),
 			)
 		})
 	}

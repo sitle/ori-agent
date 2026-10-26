@@ -3,8 +3,6 @@ package oriagent
 import (
 	"errors"
 	"path/filepath"
-
-	"github.com/sitle/ori-agent/preview"
 )
 
 // Ctl is what a slash command can do to the application. It is only valid
@@ -72,7 +70,7 @@ func (c *Ctl) Open(path string) error {
 	if !filepath.IsAbs(path) {
 		path = filepath.Join(c.a.sessionWorkDir(c.a.cur), path)
 	}
-	d := preview.Open(path, "")
+	d := c.a.openDoc(path, "")
 	if d == nil {
 		return errors.New(c.a.t("preview.notFound", path))
 	}

@@ -10,7 +10,6 @@ import (
 	"gioui.org/layout"
 	"gioui.org/widget"
 
-	"github.com/sitle/ori-agent/preview"
 	"github.com/sitle/ori-agent/ui"
 )
 
@@ -243,7 +242,7 @@ func (a *App) layoutProject(gtx C) D {
 	}
 	for i := range f.fileBtns {
 		if f.fileBtns[i].Clicked(gtx) && f.files[i].Path != "" {
-			if d := preview.Open(f.files[i].Path, ""); d != nil {
+			if d := a.openDoc(f.files[i].Path, ""); d != nil {
 				a.showPreview(d)
 			} else {
 				a.notify(a.t("preview.notFound", f.files[i].Path))

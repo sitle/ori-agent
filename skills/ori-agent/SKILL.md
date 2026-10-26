@@ -171,6 +171,7 @@ All fields optional (`oriagent.Config`):
 | `OnUpdateProject` | `func(ctx, *Project, ProjectEdit) (ProjectEdit, error)` | set: a gear on each project row opens its page (name, description, permissions, folder); returns the edit as kept |
 | `OnDeleteProject` | `func(ctx, *Project) error` | adds a confirmed remove button on the project page (not for `Permanent` projects) |
 | `ProjectFiles` | `func(*Project) []ProjectFile` | adds a Files section to the project page; called on a goroutine each time the page opens; `ProjectFile{Name, Detail, Path, Warning}`: `Warning` in red, a click opens `Path` in the preview (empty: not clickable) |
+| `Convert` | `preview.Converter` (`func(path string) (*preview.Converted, error)`) | preview of the files the pane does not read (Word, Excel…): returns `Converted{PDF, Markdown, Label}`; runs on a goroutine with a "Converting…" placeholder; nil leaves the file shown as binary; never called for text, images or PDF |
 | `Commands` | `[]*Command` | added to built-ins |
 | `Pages` | `[]Page` | sidebar pages |
 | `Dictation` | `Dictation` | simulated |

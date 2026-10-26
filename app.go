@@ -155,7 +155,7 @@ func newApp(cfg Config, w *app.Window) *App {
 		a.addFiles(cfg.Attach)
 	}
 	if cfg.Preview != "" {
-		a.showPreview(preview.Open(cfg.Preview, ""))
+		a.showPreview(a.openDoc(cfg.Preview, ""))
 	}
 	a.saved = a.settings()
 	return a

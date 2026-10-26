@@ -170,13 +170,13 @@ func (a *App) handleAttachments(gtx C) {
 			continue
 		}
 		if t.open.Clicked(gtx) {
-			a.showPreview(preview.Open(t.Path, ""))
+			a.showPreview(a.openDoc(t.Path, ""))
 		}
 	}
 	for _, m := range a.cur.Messages {
 		for _, t := range m.Attachments {
 			if t.open.Clicked(gtx) {
-				a.showPreview(preview.Open(t.Path, ""))
+				a.showPreview(a.openDoc(t.Path, ""))
 			}
 		}
 	}

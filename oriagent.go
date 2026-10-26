@@ -30,6 +30,7 @@ import (
 	"gioui.org/unit"
 
 	"github.com/sitle/ori-agent/i18n"
+	"github.com/sitle/ori-agent/preview"
 	"github.com/sitle/ori-agent/theme"
 	"github.com/sitle/ori-agent/ui"
 )
@@ -179,6 +180,11 @@ type Config struct {
 	SetupStep int      // 1-based, with StartView "setup"
 	Attach    []string // files attached to the composer at startup
 	Preview   string   // file opened in the preview pane at startup
+
+	// Convert renders in the preview pane the files it does not read itself
+	// (Word, Excel, PowerPoint…): as a PDF or as Markdown, in the
+	// background. nil, or a nil result: shown as a binary file.
+	Convert preview.Converter
 
 	Width, Height unit.Dp // default 1280×820
 }
