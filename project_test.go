@@ -127,3 +127,22 @@ func TestProjectPage(t *testing.T) {
 		t.Fatalf("project not removed, or the shown session still in it")
 	}
 }
+
+func TestProjectFiles(t *testing.T) {
+	p := NewProject("Budget", &Session{Title: "s"})
+	p.WorkDir = "/ws/budget"
+	var asked *Project
+	a := testApp(Config{
+		Projects:        []*Project{p},
+		OnUpdateProject: func(_ context.Context, _ *Project, e ProjectEdit) (ProjectEdit, error) { return e, nil },
+		ProjectFiles: func(x *Project) []ProjectFile {
+			asked = x
+			return []ProjectFile{{Name: "note.docx", Detail: "version 1", Path: "/ws/budget/pieces-jointes/note.docx"}, {Name: "plan.pdf", Warning: "modifié"}}
+		},
+	})
+	locked(a, func() { a.openProject(p) })
+	waitFor(t, a, func() bool { return !a.projPage.filesLoading })
+	if asked != p || len(a.projPage.files) != 2 || len(a.projPage.fileBtns) != 2 || a.projPage.files[1].Warning != "modifié" {
+		t.Fatalf("files: %+v", a.projPage.files)
+	}
+}

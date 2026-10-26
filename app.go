@@ -362,7 +362,9 @@ func (a *App) layoutBody(gtx C) D {
 		children = append(children, layout.Rigid(a.layoutSidebar))
 	}
 	children = append(children, layout.Flexed(1, a.layoutView))
-	if a.doc != nil && a.view == viewChat && !a.cfg.Disable.Preview {
+	// The preview sits next to the chat, and next to a project's page so its
+	// files can be read without leaving it.
+	if a.doc != nil && (a.view == viewChat || a.view == viewProject) && !a.cfg.Disable.Preview {
 		avail := gtx.Constraints.Max.X
 		if a.sideOpen {
 			avail -= gtx.Dp(sidebarWidth)

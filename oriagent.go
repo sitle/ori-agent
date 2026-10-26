@@ -156,10 +156,14 @@ type Config struct {
 	// OnDeleteProject the page has no remove button.
 	OnUpdateProject func(ctx context.Context, p *Project, edit ProjectEdit) (ProjectEdit, error)
 	OnDeleteProject func(ctx context.Context, p *Project) error
-	Devices         []*Device  // profile's connected devices; empty hides the section
-	Projects        []*Project // demo data; default: one empty session
-	Commands        []*Command // added to the built-in ones
-	Pages           []Page
+	// ProjectFiles lists the files shown in a Files section of a project's
+	// page, such as the files attached in its sessions; nil hides the
+	// section. It is called on a goroutine of its own when the page opens.
+	ProjectFiles func(p *Project) []ProjectFile
+	Devices      []*Device  // profile's connected devices; empty hides the section
+	Projects     []*Project // demo data; default: one empty session
+	Commands     []*Command // added to the built-in ones
+	Pages        []Page
 
 	Dictation Dictation // default: simulated
 	Pomodoro  PomodoroConfig

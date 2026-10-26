@@ -158,7 +158,13 @@ Trois rappels laissent l'application gérer les projets :
 - **`OnUpdateProject(ctx, projet, modif)`** : une roue dentée sur chaque ligne de projet ouvre sa page (nom, description, autorisations, dossier copiable). L'application enregistre la modification et la renvoie telle qu'elle l'a gardée.
 - **`OnDeleteProject(ctx, projet)`** : ajoute à cette page un bouton de suppression, à confirmer, sauf pour un projet `Permanent`.
 
-Ils s'exécutent dans une goroutine ; une erreur reste affichée dans le formulaire ou la page. L'exemple [`examples/anna/store.go`](../examples/anna/store.go) en donne une version complète : un dossier par projet, marqué par un fichier `project.json`, rechargé au démarrage, et une suppression qui ne touche jamais un dossier que l'application n'a pas créé.
+Ils s'exécutent dans une goroutine ; une erreur reste affichée dans le formulaire ou la page.
+
+**`ProjectFiles(projet)`** ajoute à la page d'un projet une section « Fichiers » : l'application renvoie une liste de `ProjectFile` (`Name`, `Detail` pour la taille, la date ou une empreinte, `Path`, `Warning` affiché en rouge). Un clic sur un fichier dont `Path` est renseigné l'ouvre dans l'aperçu, à côté de la page. La liste est demandée dans une goroutine à chaque ouverture de la page ; un message d'attente s'affiche en attendant.
+
+![Page d'un projet avec ses fichiers et l'aperçu de l'un d'eux](images/page-projet.png)
+
+Pour tous ces rappels, l'exemple [`examples/anna/store.go`](../examples/anna/store.go) en donne une version complète : un dossier par projet, marqué par un fichier `project.json`, rechargé au démarrage, et une suppression qui ne touche jamais un dossier que l'application n'a pas créé.
 
 ## Données de démonstration
 

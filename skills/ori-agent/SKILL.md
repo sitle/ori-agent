@@ -167,6 +167,7 @@ All fields optional (`oriagent.Config`):
 | `OnNewProject` | `func(ctx, name, desc string) (*Project, error)` | set: the sidebar main button opens a create-project form; goroutine; error stays in the form |
 | `OnUpdateProject` | `func(ctx, *Project, ProjectEdit) (ProjectEdit, error)` | set: a gear on each project row opens its page (name, description, permissions, folder); returns the edit as kept |
 | `OnDeleteProject` | `func(ctx, *Project) error` | adds a confirmed remove button on the project page (not for `Permanent` projects) |
+| `ProjectFiles` | `func(*Project) []ProjectFile` | adds a Files section to the project page; called on a goroutine each time the page opens; `ProjectFile{Name, Detail, Path, Warning}`: `Warning` in red, a click opens `Path` in the preview (empty: not clickable) |
 | `Commands` | `[]*Command` | added to built-ins |
 | `Pages` | `[]Page` | sidebar pages |
 | `Dictation` | `Dictation` | simulated |

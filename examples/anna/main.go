@@ -70,6 +70,11 @@ func main() {
 			settings.Dark = !*light
 		}
 	})
+	locale := settings.Locale
+	if locale == "" {
+		locale = i18n.Detect()
+	}
+	st.setLocale(locale)
 
 	agent := sim.New()
 	agent.DocName = "ANNA.md"
@@ -84,6 +89,7 @@ func main() {
 		// Interface language: the framework's catalogs, plus the simulated
 		// agent's and this app's own texts (demo.go).
 		Translations: i18n.Merge(sim.Translations, translations),
+		OnLocale:     st.setLocale,
 
 		// Configuration page values, restored and saved by the app.
 		Settings:   &settings,
@@ -104,6 +110,7 @@ func main() {
 		OnNewProject:    st.newProject,
 		OnUpdateProject: st.updateProject,
 		OnDeleteProject: st.deleteProject,
+		ProjectFiles:    st.projectFiles,
 
 		StartView: *view,
 		SetupStep: *step,

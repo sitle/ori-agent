@@ -4,6 +4,19 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [0.2.2] - 2026-10-26
+
+### Ajouté
+
+- `Config.ProjectFiles` et `ProjectFile` : section « Fichiers » de la page d'un projet, remplie par l'application (par exemple les fichiers joints dans ses sessions) avec, pour chaque fichier, un détail (taille, date, version, empreinte…) et un avertissement en rouge ; un clic ouvre l'aperçu. La liste est demandée dans une goroutine à l'ouverture de la page.
+- L'exemple Anna liste les fichiers du dossier de chaque projet, avec leur taille dans la langue de l'interface, leur date et un avertissement au-delà de 20 Mo.
+- Capture de la page d'un projet dans la documentation ; captures du README mises à jour.
+
+### Corrigé
+
+- L'aperçu s'affiche aussi à côté de la page d'un projet, et plus seulement à côté de la conversation.
+- Un fichier introuvable dans la section « Fichiers » affiche une notification au lieu de ne rien faire.
+
 ## [0.2.1] - 2026-10-26
 
 ### Corrigé
@@ -64,7 +77,8 @@ Première version publique.
 - Documentation en français dans `docs/` : prise en main, écrire un agent, personnalisation, langues, composants, architecture.
 - Documentation pour les assistants de code : skill `skills/ori-agent/SKILL.md`, `llms.txt`, `AGENTS.md`.
 
-[Non publié]: https://github.com/sitle/ori-agent/compare/v0.2.1...HEAD
+[Non publié]: https://github.com/sitle/ori-agent/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/sitle/ori-agent/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/sitle/ori-agent/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/sitle/ori-agent/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/sitle/ori-agent/releases/tag/v0.1.0

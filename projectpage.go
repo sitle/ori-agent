@@ -10,6 +10,7 @@ import (
 	"gioui.org/layout"
 	"gioui.org/widget"
 
+	"github.com/sitle/ori-agent/preview"
 	"github.com/sitle/ori-agent/ui"
 )
 
@@ -29,8 +30,17 @@ type ProjectEdit struct {
 	Permissions *Permissions // nil when the project has none of its own
 }
 
+// ProjectFile is a row of the Files section of a project's page, such as
+// a file the user attached in its sessions.
+type ProjectFile struct {
+	Name    string
+	Detail  string // size, date, version, checksum…
+	Path    string // opened in the preview pane on click; empty: not clickable
+	Warning string // shown in red when set, such as "changed since added"
+}
+
 // projectPageState is the page of one project: name, description,
-// permissions, folder, and removal.
+// permissions, folder, files, and removal.
 type projectPageState struct {
 	p                    *Project
 	name, desc           widget.Editor
@@ -40,6 +50,10 @@ type projectPageState struct {
 	list                 widget.List
 	busy, confirmRemove  bool
 	err                  string
+
+	files        []ProjectFile
+	fileBtns     []widget.Clickable
+	filesLoading bool
 }
 
 // openProject shows the page of p, with its current values.
@@ -51,6 +65,19 @@ func (a *App) openProject(p *Project) {
 	f.desc.SetText(p.Description)
 	if p.Permissions != nil {
 		f.allowCmds.Value, f.askEdits.Value = p.Permissions.AllowCommands, p.Permissions.AskEdits
+	}
+	f.files, f.fileBtns = nil, nil
+	if a.cfg.ProjectFiles != nil {
+		// Listing may read the disk (checksums): on a goroutine of its own.
+		f.filesLoading = true
+		go func() {
+			files := a.cfg.ProjectFiles(p)
+			a.update(func() {
+				if f.p == p {
+					f.files, f.fileBtns, f.filesLoading = files, make([]widget.Clickable, len(files)), false
+				}
+			})
+		}()
 	}
 	a.view = viewProject
 }
@@ -141,6 +168,52 @@ func (a *App) dropProject(p *Project) {
 	a.view = viewChat
 }
 
+// projectFiles lists the files of the project's page; each row opens its
+// file in the preview pane.
+func (a *App) projectFiles(gtx C) D {
+	th, f := a.th, &a.projPage
+	switch {
+	case f.filesLoading:
+		return th.Label(13, a.t("project.files.loading"), th.Muted, font.Normal).Layout(gtx)
+	case len(f.files) == 0:
+		return th.Label(13, a.t("project.files.none"), th.Muted, font.Normal).Layout(gtx)
+	}
+	rows := make([]layout.FlexChild, 0, 2*len(f.files))
+	for i, file := range f.files {
+		if i > 0 {
+			rows = append(rows, layout.Rigid(th.HLine))
+		}
+		rows = append(rows, layout.Rigid(func(gtx C) D {
+			return f.fileBtns[i].Layout(gtx, func(gtx C) D {
+				return layout.Inset{Top: 8, Bottom: 8}.Layout(gtx, func(gtx C) D {
+					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+						layout.Rigid(func(gtx C) D {
+							c := th.Text
+							if file.Path != "" && f.fileBtns[i].Hovered() {
+								c = th.Accent
+							}
+							return ui.OneLine(gtx, th.Label(14, file.Name, c, font.Medium))
+						}),
+						layout.Rigid(func(gtx C) D {
+							if file.Detail == "" {
+								return D{}
+							}
+							return layout.Inset{Top: 2}.Layout(gtx, th.Label(12, file.Detail, th.Muted, font.Normal).Layout)
+						}),
+						layout.Rigid(func(gtx C) D {
+							if file.Warning == "" {
+								return D{}
+							}
+							return layout.Inset{Top: 2}.Layout(gtx, th.Label(12, file.Warning, th.DiffDel, font.Medium).Layout)
+						}),
+					)
+				})
+			})
+		}))
+	}
+	return layout.Flex{Axis: layout.Vertical}.Layout(gtx, rows...)
+}
+
 // permissions of the session s: its project's, or the Configuration's.
 func (a *App) permissions(s *Session) Permissions {
 	for s != nil && s.parent != nil {
@@ -167,6 +240,15 @@ func (a *App) layoutProject(gtx C) D {
 	}
 	if f.remove.Clicked(gtx) && !f.busy {
 		a.removeProject()
+	}
+	for i := range f.fileBtns {
+		if f.fileBtns[i].Clicked(gtx) && f.files[i].Path != "" {
+			if d := preview.Open(f.files[i].Path, ""); d != nil {
+				a.showPreview(d)
+			} else {
+				a.notify(a.t("preview.notFound", f.files[i].Path))
+			}
+		}
 	}
 	if f.copyDir.Clicked(gtx) {
 		gtx.Execute(clipboard.WriteCmd{Type: "application/text", Data: io.NopCloser(strings.NewReader(p.WorkDir))})
@@ -235,6 +317,12 @@ func (a *App) layoutProject(gtx C) D {
 						}),
 					)
 				})
+			}),
+			layout.Rigid(func(gtx C) D {
+				if a.cfg.ProjectFiles == nil {
+					return D{}
+				}
+				return th.Section(gtx, a.t("project.files.title"), a.t("project.files.desc"), a.projectFiles)
 			}),
 			layout.Rigid(func(gtx C) D {
 				if f.err == "" {

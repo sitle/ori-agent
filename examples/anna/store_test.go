@@ -53,6 +53,27 @@ func TestStoreProjects(t *testing.T) {
 	}
 }
 
+func TestStoreProjectFiles(t *testing.T) {
+	s := newStore(t.TempDir())
+	p, err := s.newProject(context.Background(), "Pièces", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(p.WorkDir, "note.md"), []byte("# Note"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(filepath.Join(p.WorkDir, "sous-dossier"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	files := s.projectFiles(p)
+	if len(files) != 1 || files[0].Name != "note.md" || files[0].Path != filepath.Join(p.WorkDir, "note.md") || files[0].Warning != "" {
+		t.Fatalf("files = %+v (project.json and folders must be left out)", files)
+	}
+	if got := s.projectFiles(oriagent.NewProject("sans dossier")); got != nil {
+		t.Errorf("a project without folder should list nothing, got %+v", got)
+	}
+}
+
 // A project the store did not create, such as the folder Anna runs in, must
 // never be removed from disk.
 func TestStoreKeepsForeignFolders(t *testing.T) {

@@ -12,6 +12,7 @@ import (
 	"unicode"
 
 	oriagent "github.com/sitle/ori-agent"
+	"github.com/sitle/ori-agent/i18n"
 )
 
 // store keeps what ori-agent leaves to the application: the Configuration
@@ -20,6 +21,7 @@ import (
 // only such folders are ever removed.
 type store struct {
 	dir string
+	tr  *i18n.Bundle // follows the interface language (Config.OnLocale), for file sizes
 }
 
 const projectFile = "project.json"
@@ -30,7 +32,16 @@ type projectMeta struct {
 	Permissions *oriagent.Permissions `json:"permissions,omitempty"`
 }
 
-func newStore(dir string) *store { return &store{dir: dir} }
+func newStore(dir string) *store {
+	tr := i18n.New("fr")
+	for l, c := range oriagent.Catalogs {
+		tr.Add(l, c)
+	}
+	return &store{dir: dir, tr: tr}
+}
+
+// setLocale is Config.OnLocale.
+func (s *store) setLocale(locale string) { s.tr.SetLocale(locale) }
 
 func (s *store) path(name string) string { return filepath.Join(s.dir, name) }
 
@@ -172,6 +183,36 @@ func (s *store) deleteProject(ctx context.Context, p *oriagent.Project) error {
 		return os.RemoveAll(p.WorkDir)
 	}
 	return nil
+}
+
+// projectFiles is Config.ProjectFiles: the files at the top of the project's
+// folder, with their size and date. A file too large to be attached gets a
+// warning. Folders and Anna's own project.json are left out.
+func (s *store) projectFiles(p *oriagent.Project) []oriagent.ProjectFile {
+	if p.WorkDir == "" {
+		return nil
+	}
+	entries, err := os.ReadDir(p.WorkDir)
+	if err != nil {
+		return []oriagent.ProjectFile{{Name: p.WorkDir, Warning: err.Error()}}
+	}
+	var files []oriagent.ProjectFile
+	for _, e := range entries {
+		info, err := e.Info()
+		if err != nil || !info.Mode().IsRegular() || e.Name() == projectFile {
+			continue
+		}
+		f := oriagent.ProjectFile{
+			Name:   e.Name(),
+			Detail: oriagent.HumanSize(info.Size(), s.tr) + " · " + info.ModTime().Format("2006-01-02 15:04"),
+			Path:   filepath.Join(p.WorkDir, e.Name()),
+		}
+		if info.Size() > oriagent.MaxUpload {
+			f.Warning = "Trop volumineux pour être joint (20 Mo au plus)"
+		}
+		files = append(files, f)
+	}
+	return files
 }
 
 func pause(ctx context.Context, ms int) error {
