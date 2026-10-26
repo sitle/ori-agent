@@ -218,6 +218,26 @@ revue := &oriagent.Command{
 
 `RunTurn(prompt, nil)` utilise l'agent configuré.
 
+## Faire tourner un agent sans fenêtre
+
+`NewHeadless` fait tourner l'agent de la configuration sans ouvrir de fenêtre, par le même `Turn` que l'application : pour des tests, des bancs d'évaluation ou des scripts. `Run` lance un tour dans une session (nouvelle si `nil`, ou existante pour enchaîner les tours avec l'historique), attend la fin et renvoie la session, dont le fil se lit dans `Session.Messages`. Les réglages que la fenêtre prend dans la Configuration se donnent dans `TurnOptions`.
+
+```go
+h := oriagent.NewHeadless(oriagent.Config{Agent: monAgent})
+h.Approve = func(r oriagent.ApprovalRequest) oriagent.Decision {
+	return oriagent.Allow // nil : toutes les demandes sont refusées
+}
+s, err := h.Run(ctx, nil, "Corrige le test", nil, oriagent.TurnOptions{WorkDir: dossier, AskEdits: true})
+if err != nil {
+	return err
+}
+for _, m := range s.Messages {
+	fmt.Println(m.Kind, m.Text, m.ToolName, m.Output)
+}
+```
+
+`Approve` répond aux demandes d'approbation de l'agent, dans la goroutine de l'agent ; une demande reste visible dans le fil avec sa réponse. Un second `Run` dans une session encore occupée renvoie `ErrSessionBusy`. Le test [`sim/sim_test.go`](../sim/sim_test.go) teste ainsi l'agent simulé.
+
 ## S'inspirer de l'agent simulé
 
 Le paquet [`sim`](../sim/sim.go) est un agent complet sans modèle : réflexion, liste de tâches, sous-agent qui explore le dossier, modification proposée avec son diff et approbation, lecture des pièces jointes, commandes `/review` et `/init`, réponses bilingues. C'est le meilleur point de départ pour structurer le vôtre.

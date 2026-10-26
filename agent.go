@@ -236,11 +236,8 @@ func (t *Turn) closeOpen() {
 // TurnFunc runs a turn; commands use it to start custom turns.
 type TurnFunc func(ctx context.Context, t *Turn) error
 
-// startTurn runs fn for session s. Called with the lock held.
-func (a *App) startTurn(s *Session, prompt string, atts []*Attachment, fn TurnFunc) bool {
-	if s.Busy {
-		return false
-	}
+// history is what the agent is given of s's earlier exchanges.
+func (s *Session) history() []HistoryEntry {
 	var hist []HistoryEntry
 	for _, m := range s.Messages {
 		switch m.Kind {
@@ -250,6 +247,15 @@ func (a *App) startTurn(s *Session, prompt string, atts []*Attachment, fn TurnFu
 			hist = append(hist, HistoryEntry{Role: "assistant", Text: m.Text})
 		}
 	}
+	return hist
+}
+
+// startTurn runs fn for session s. Called with the lock held.
+func (a *App) startTurn(s *Session, prompt string, atts []*Attachment, fn TurnFunc) bool {
+	if s.Busy {
+		return false
+	}
+	hist := s.history()
 	if prompt != "" || len(atts) > 0 {
 		s.add(UserMsg(prompt, atts...))
 	}

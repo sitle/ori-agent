@@ -3,6 +3,7 @@ package oriagent_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -78,6 +79,29 @@ func ExampleTurn_Subagent() {
 		b.Done()
 		return nil
 	})
+}
+
+// An agent runs without a window through the same Turn, for tests and
+// evaluation benches; the transcript is read from the returned session.
+func ExampleNewHeadless() {
+	h := oriagent.NewHeadless(oriagent.Config{Agent: oriagent.AgentFunc(func(ctx context.Context, t *oriagent.Turn) error {
+		d, err := t.Approve(ctx, oriagent.ApprovalRequest{Title: "Run go test", Detail: "go test ./..."})
+		if err != nil || d == oriagent.Deny {
+			return err
+		}
+		b := t.Text()
+		b.Write("Tests pass in " + t.WorkDir)
+		b.Done()
+		return nil
+	})})
+	h.Approve = func(r oriagent.ApprovalRequest) oriagent.Decision { return oriagent.Allow }
+
+	s, err := h.Run(context.Background(), nil, "test it", nil, oriagent.TurnOptions{WorkDir: "/ws"})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(s.Messages[len(s.Messages)-1].Text)
+	// Output: Tests pass in /ws
 }
 
 // A slash command acts on the application through Ctl. Desc can be a

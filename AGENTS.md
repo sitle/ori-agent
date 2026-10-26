@@ -28,6 +28,7 @@ Linux needs Gio's system packages (`gcc pkg-config libwayland-dev libx11-dev lib
 | `oriagent.go` | `Config`, `Run`, public types (`Model`, `User`, `Page`, `Features`, `Settings`, `ProfileLock`) |
 | `app.go` | `App` state, frame loop, view routing, locale switching |
 | `agent.go` | `Agent`, `Turn` API, `startTurn` (goroutine, cancellation, cleanup) |
+| `approval.go`, `headless.go` | `Turn.Approve` and its card; `Headless` (running an agent without a window) |
 | `model.go` | `Project`, `Session`, `Message`, constructors |
 | `project.go`, `projectpage.go` | new-project form (`OnNewProject`), project page (`OnUpdateProject`, `OnDeleteProject`), `Permissions`, per-project work dir |
 | `chat.go`, `sidebar.go`, `titlebar.go`, `pages.go` | UI areas |

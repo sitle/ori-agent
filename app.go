@@ -77,6 +77,7 @@ type App struct {
 	saved       Settings // last values given to Config.OnSettings
 	profile     profileState
 	newProj     newProjectState
+	headless    *Headless // set when running without a window
 	projPage    projectPageState
 	voice       voiceState
 	pomo        Pomodoro

@@ -300,6 +300,17 @@ Texts may contain `fmt` verbs filled by `T` arguments; keep the same verbs in ev
 
 Implement `oriagent.Dictation` (`Start() error`, `Stop() (string, error)` - may block) for a real speech-to-text engine. Optional: `Level() float32` (`Leveler`) for the live meter, `SetLocale(string)` (`LocaleSetter`) to follow the UI language.
 
+## Headless runs (tests, evaluation)
+
+```go
+h := oriagent.NewHeadless(oriagent.Config{Agent: myAgent}) // no window
+h.Approve = func(r oriagent.ApprovalRequest) oriagent.Decision { return oriagent.Allow } // nil = Deny all
+s, err := h.Run(ctx, nil, "fix the test", nil, oriagent.TurnOptions{WorkDir: dir, AskEdits: true})
+// s.Messages is the transcript; pass s again to continue the session with its history
+```
+
+`TurnOptions{Thinking, AllowCommands, AskEdits, Model, WorkDir, Locale}` replace the Configuration values. `Run` blocks until the agent returns; `Approve` is called on the agent's goroutine; a second `Run` in a busy session returns `oriagent.ErrSessionBusy`. Use it to unit-test an agent (see `sim/sim_test.go`).
+
 ## Simulated agent
 
 `github.com/sitle/ori-agent/sim`: `a := sim.New(); a.DocName = "AGENT.md"`; use `a` as `Config.Agent`, `a.Commands()` for `/review` and `/init`, and merge `sim.Translations`. Good for UI work without a model and as a structural reference (`sim/sim.go`).

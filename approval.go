@@ -52,6 +52,16 @@ type approval struct {
 func (t *Turn) Approve(ctx context.Context, req ApprovalRequest) (Decision, error) {
 	ap := &approval{req: req, ch: make(chan Decision, 1)}
 	m := &Message{Kind: KindApproval, approval: ap}
+	if h := t.app.headless; h != nil {
+		// Without a window, the Headless answers at once, outside the lock:
+		// its callback may take its time or read the session.
+		d := h.approve(req)
+		t.app.update(func() {
+			ap.done, ap.decision = true, d
+			t.s.add(m)
+		})
+		return d, nil
+	}
 	t.app.update(func() {
 		root := t.s
 		for root.parent != nil {

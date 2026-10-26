@@ -4,6 +4,14 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [0.4.0] - 2026-10-26
+
+### Ajouté
+
+- `Headless`, `NewHeadless` et `TurnOptions` : faire tourner l'agent sans fenêtre, par le même `Turn` que l'application, pour des tests, des bancs d'évaluation ou des scripts. `Headless.Run` lance un tour dans une session (nouvelle ou existante) et rend la session, dont le fil se lit ensuite ; `Headless.Approve` répond aux demandes d'approbation (refus si absent), dans la goroutine de l'agent. Un second tour dans une session occupée renvoie `ErrSessionBusy`.
+- Test de l'agent simulé sans fenêtre (`sim/sim_test.go`) et exemple compilé `ExampleNewHeadless`.
+- Documentation : « Faire tourner un agent sans fenêtre » dans `docs/agents.md`, section correspondante dans la skill.
+
 ## [0.3.0] - 2026-10-26
 
 Cette version reprend le contenu de la 0.2.3, publiée par erreur avec un numéro de correctif et retirée (`retract` dans `go.mod`).
@@ -90,7 +98,8 @@ Première version publique.
 - Documentation en français dans `docs/` : prise en main, écrire un agent, personnalisation, langues, composants, architecture.
 - Documentation pour les assistants de code : skill `skills/ori-agent/SKILL.md`, `llms.txt`, `AGENTS.md`.
 
-[Non publié]: https://github.com/sitle/ori-agent/compare/v0.3.0...HEAD
+[Non publié]: https://github.com/sitle/ori-agent/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/sitle/ori-agent/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/sitle/ori-agent/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/sitle/ori-agent/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/sitle/ori-agent/compare/v0.2.0...v0.2.1
