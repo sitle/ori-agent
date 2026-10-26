@@ -4,6 +4,17 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [0.2.3] - 2026-10-26
+
+### Ajouté
+
+- `Session.ID` et `Turn.SessionID` : identifiant stable de la session, donné par ori-agent aux nouvelles sessions (et aux sous-agents), fourni par l'application pour les sessions qu'elle restaure ; `NewSessionID()`. L'agent retrouve ainsi ses propres enregistrements sans dépendre du texte affiché.
+- `Turn.Approve`, `ApprovalRequest` et `Decision` : l'agent demande une approbation (commande, modification de fichier…) et attend la réponse. Une carte s'affiche dans le fil avec le détail, le diff éventuel et les boutons Autoriser, Toujours pour cette session (si proposé) et Refuser ; Stop retire la demande. La demande d'un sous-agent s'affiche dans la session principale, en le nommant ; une notification la signale si une autre session est affichée.
+- Vue de diff : `ToolCall.Diff(ancien, nouveau)` montre dans la carte d'un appel d'outil les lignes retirées et ajoutées, avec numéros de ligne, trois lignes de contexte et le décompte « +3 -1 » dans l'en-tête ; `ui.DiffLines`, `ui.Hunks`, `ui.DiffStat` et `Theme.Diff` sont utilisables hors de l'application. `Message.HasDiff`, `DiffOld` et `DiffNew` font de même dans un transcript écrit d'avance.
+- L'agent simulé (`sim`, exemple Anna) propose une modification avec son diff, sans l'écrire sur le disque, et demande d'abord une approbation quand les autorisations l'exigent ; « Toujours pour cette session » est retenu par `Turn.SessionID`. Les modifications du transcript de démonstration s'affichent en diff.
+- Une demande d'approbation laissée sans réponse à la fin d'un tour est marquée annulée.
+- Capture d'une demande d'approbation dans la documentation ; captures du README mises à jour.
+
 ## [0.2.2] - 2026-10-26
 
 ### Ajouté
@@ -77,7 +88,8 @@ Première version publique.
 - Documentation en français dans `docs/` : prise en main, écrire un agent, personnalisation, langues, composants, architecture.
 - Documentation pour les assistants de code : skill `skills/ori-agent/SKILL.md`, `llms.txt`, `AGENTS.md`.
 
-[Non publié]: https://github.com/sitle/ori-agent/compare/v0.2.2...HEAD
+[Non publié]: https://github.com/sitle/ori-agent/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/sitle/ori-agent/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/sitle/ori-agent/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/sitle/ori-agent/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/sitle/ori-agent/compare/v0.1.0...v0.2.0

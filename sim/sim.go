@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -21,6 +22,9 @@ import (
 type Agent struct {
 	// DocName is the file /init pretends to write. Default "AGENT.md".
 	DocName string
+
+	mu      sync.Mutex
+	allowed map[string]bool // Turn.SessionID of the sessions where edits were allowed for good
 }
 
 func New() *Agent { return &Agent{DocName: "AGENT.md"} }
@@ -154,6 +158,11 @@ func (s *Agent) Run(ctx context.Context, t *oriagent.Turn) error {
 	}
 	sub.Finish(report)
 	tasks.Advance(1)
+	if f != "" {
+		if err := s.proposeEdit(ctx, t, f); err != nil {
+			return err
+		}
+	}
 
 	dirs := 0
 	for _, e := range entries {
@@ -169,6 +178,64 @@ func (s *Agent) Run(ctx context.Context, t *oriagent.Turn) error {
 	err := say(ctx, t, tr(t, "sim.done", t.WorkDir, t.Prompt, len(entries), dirs, len(entries)-dirs))
 	tasks.Set(2, oriagent.TaskDone)
 	return err
+}
+
+// proposeEdit shows a change to the top of f as a diff, without writing it.
+// With Turn.AskEdits, the user approves it first, unless edits were allowed
+// for the whole session before.
+func (s *Agent) proposeEdit(ctx context.Context, t *oriagent.Turn, f string) error {
+	path := filepath.Join(t.WorkDir, f)
+	old := firstLines(path, 8)
+	if old == "" {
+		return nil
+	}
+	new := tr(t, "sim.edit.note") + "\n" + old
+	s.mu.Lock()
+	ask := t.AskEdits && !s.allowed[t.SessionID]
+	s.mu.Unlock()
+	if ask {
+		d, err := t.Approve(ctx, oriagent.ApprovalRequest{Title: tr(t, "sim.edit.title", f), Diff: true, Old: old, New: new, AllowSession: true})
+		if err != nil {
+			return err
+		}
+		switch d {
+		case oriagent.Deny:
+			return say(ctx, t, tr(t, "sim.edit.denied", f))
+		case oriagent.AllowSession:
+			s.mu.Lock()
+			if s.allowed == nil {
+				s.allowed = map[string]bool{}
+			}
+			s.allowed[t.SessionID] = true
+			s.mu.Unlock()
+		}
+	}
+	c := t.Tool("Edit", f).File(path).Diff(old, new)
+	if err := sleep(ctx, 500); err != nil {
+		return err
+	}
+	c.Done(tr(t, "sim.edit.output", f))
+	return sleep(ctx, 200)
+}
+
+// firstLines returns the first n lines of a text file, or "" for a binary
+// or unreadable one.
+func firstLines(path string, n int) string {
+	f, err := os.Open(path)
+	if err != nil {
+		return ""
+	}
+	defer f.Close()
+	buf := make([]byte, 16<<10)
+	k, _ := f.Read(buf)
+	if k == 0 || !utf8.Valid(buf[:k]) {
+		return ""
+	}
+	lines := strings.Split(strings.TrimSuffix(strings.ReplaceAll(string(buf[:k]), "\r\n", "\n"), "\n"), "\n")
+	if len(lines) > n {
+		lines = lines[:n]
+	}
+	return strings.Join(lines, "\n") + "\n"
 }
 
 // readAttachments reads each attached file, then lists what was received.

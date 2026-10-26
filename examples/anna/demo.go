@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/color"
 	"path/filepath"
+	"strings"
 
 	"gioui.org/font"
 	"gioui.org/layout"
@@ -32,8 +33,9 @@ func demoProjects(cwd, doc string) []*oriagent.Project {
 			oriagent.Task{Text: "Run the tests", Status: oriagent.TaskDone},
 		),
 		oriagent.ToolMsg("Read", "cmd/root.go", "   1  package cmd\n   2  \n   3  var rootCmd = &cobra.Command{\n   4  \tUse:   \"mycli\",\n   5  \tShort: \"A tiny example CLI\",\n   6  }\n   7  \n   8  func init() {\n   9  \trootCmd.PersistentFlags().StringVar(&cfgFile, \"config\", \"\", \"config file\")\n  10  }"),
-		expanded(oriagent.ToolMsg("Edit", "cmd/root.go", " func init() {\n \trootCmd.PersistentFlags().StringVar(&cfgFile, \"config\", \"\", \"config file\")\n+\trootCmd.PersistentFlags().BoolVarP(&verbose, \"verbose\", \"v\", false, \"verbose output\")\n }")),
-		oriagent.ToolMsg("Edit", "README.md", " ## Flags\n \n-| `--config` | config file |\n+| `--config`  | config file    |\n+| `--verbose` | verbose output |"),
+		expanded(edit("cmd/root.go", rootGo, strings.Replace(rootGo, "\")\n}", "\")\n\trootCmd.PersistentFlags().BoolVarP(&verbose, \"verbose\", \"v\", false, \"verbose output\")\n}", 1))),
+		edit("README.md", "## Flags\n\n| Flag | Effect |\n|---|---|\n| `--config` | config file |\n",
+			"## Flags\n\n| Flag | Effect |\n|---|---|\n| `--config`  | config file    |\n| `--verbose` | verbose output |\n"),
 		oriagent.ToolMsg("Bash", "go test ./...", "ok  \texample.com/mycli/cmd\t0.412s\nok  \texample.com/mycli/internal/log\t0.108s"),
 		oriagent.ToolMsg("Read", doc, "PDF document - click the file name to open it in the preview pane."),
 		oriagent.TextMsg("Added a persistent `--verbose` / `-v` flag in cmd/root.go and a row for it in the README's flag table. Tests pass.\n\n" +
@@ -130,6 +132,16 @@ func demo(title string) *oriagent.Session {
 
 func expanded(m *oriagent.Message) *oriagent.Message {
 	m.Expanded = true
+	return m
+}
+
+// rootGo is the demo's cmd/root.go before the --verbose flag.
+const rootGo = "package cmd\n\nvar rootCmd = &cobra.Command{\n\tUse:   \"mycli\",\n\tShort: \"A tiny example CLI\",\n}\n\nfunc init() {\n\trootCmd.PersistentFlags().StringVar(&cfgFile, \"config\", \"\", \"config file\")\n}\n"
+
+// edit is an Edit tool call that shows its change as a diff.
+func edit(path, old, new string) *oriagent.Message {
+	m := oriagent.ToolMsg("Edit", path, "")
+	m.HasDiff, m.DiffOld, m.DiffNew = true, old, new
 	return m
 }
 

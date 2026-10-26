@@ -29,6 +29,7 @@ Une simple fonction suffit, grâce à `oriagent.AgentFunc(maFonction)`.
 | `t.Model` | Le modèle choisi par l'utilisateur (`Name`, `Desc`) |
 | `t.WorkDir` | Le dossier de travail : celui du projet de la session s'il en a un, sinon celui de la Configuration |
 | `t.Locale` | La langue de l'interface (`"fr"`, `"en"`…), pour répondre dans la même langue |
+| `t.SessionID` | L'identifiant stable de la session (`Session.ID`), pour retrouver les enregistrements de l'agent d'un tour à l'autre ; un sous-agent a le sien |
 
 ## Ce que l'agent écrit
 
@@ -68,6 +69,34 @@ call.Done(string(contenu))
 ```
 
 Les lignes de sortie qui commencent par `+` ou `-` sont colorées comme un diff.
+
+Pour une modification de fichier, `Diff(ancien, nouveau)` affiche à la place de la sortie les lignes retirées et ajoutées, avec leurs numéros et trois lignes de contexte ; l'en-tête de l'appel donne le décompte « +3 -1 ».
+
+```go
+call := t.Tool("Edit", "main.go").File(chemin).Diff(avant, apres)
+call.Done("")
+```
+
+### Demander une approbation
+
+`Approve` affiche une carte dans le fil (titre, détail, diff éventuel) et attend la réponse de l'utilisateur : Autoriser, Toujours pour cette session (avec `AllowSession`) ou Refuser. C'est l'agent qui décide ce qui demande une approbation, par exemple selon `t.AskEdits`. La demande d'un sous-agent s'affiche dans la session principale ; une notification la signale si l'utilisateur regarde une autre session. Le bouton Arrêter retire la demande : `Approve` renvoie alors `Deny` et l'erreur de `ctx`.
+
+![Demande d'approbation d'une modification, avec son diff](images/approbation.png)
+
+```go
+if t.AskEdits {
+	d, err := t.Approve(ctx, oriagent.ApprovalRequest{
+		Title: "Modifier main.go", Diff: true, Old: avant, New: apres, AllowSession: true,
+	})
+	if err != nil {
+		return err
+	}
+	if d == oriagent.Deny {
+		return nil // ne pas modifier
+	}
+	// d == oriagent.AllowSession : ne plus demander dans cette session (t.SessionID)
+}
+```
 
 ### Une liste de tâches
 
@@ -191,4 +220,4 @@ revue := &oriagent.Command{
 
 ## S'inspirer de l'agent simulé
 
-Le paquet [`sim`](../sim/sim.go) est un agent complet sans modèle : réflexion, liste de tâches, sous-agent qui explore le dossier, lecture des pièces jointes, commandes `/review` et `/init`, réponses bilingues. C'est le meilleur point de départ pour structurer le vôtre.
+Le paquet [`sim`](../sim/sim.go) est un agent complet sans modèle : réflexion, liste de tâches, sous-agent qui explore le dossier, modification proposée avec son diff et approbation, lecture des pièces jointes, commandes `/review` et `/init`, réponses bilingues. C'est le meilleur point de départ pour structurer le vôtre.

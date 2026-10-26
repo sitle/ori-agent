@@ -31,6 +31,11 @@ var Translations = map[string]map[string]string{
 			"Votre demande : « %s »\n\n" +
 			"Le dossier contient %d éléments (%d dossiers, %d fichiers). Dans une vraie session, je planifierais maintenant la modification, éditerais les fichiers et lancerais les tests, en tenant la liste de tâches à jour.",
 
+		"sim.edit.title":  "Ajouter une note en tête de %s",
+		"sim.edit.note":   "Note : relu pendant une session simulée.",
+		"sim.edit.output": "Simulation : %s n'a pas été modifié sur le disque.",
+		"sim.edit.denied": "Modification de %s refusée : je n'y touche pas.",
+
 		"sim.att.think": "L'utilisateur a joint %d fichier(s) : %s. Je lis chacun avant de répondre, " +
 			"puis je résume leur contenu. C'est une simulation : le résumé reste générique.",
 		"sim.att.read":  "J'ai lu les documents joints - simulation, aucun modèle n'est connecté :",
@@ -77,6 +82,11 @@ var Translations = map[string]map[string]string{
 		"sim.done": "Done. This is a simulated run - no model is connected, but the tool calls above really ran against %s.\n\n" +
 			"You asked: \"%s\"\n\n" +
 			"The directory has %d entries (%d folders, %d files). In a real session I would now plan the change, edit the files and run the tests, keeping the task list up to date as I go.",
+
+		"sim.edit.title":  "Add a note at the top of %s",
+		"sim.edit.note":   "Note: reviewed during a simulated session.",
+		"sim.edit.output": "Simulated: %s was not changed on disk.",
+		"sim.edit.denied": "Change to %s denied: I'll leave it alone.",
 
 		"sim.att.think": "The user attached %d file(s): %s. I'll read each one before answering, " +
 			"then summarize what they contain. This is a simulation, so the summary stays generic.",

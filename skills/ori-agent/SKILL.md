@@ -67,6 +67,7 @@ Turn inputs (read-only fields):
 | `Model` | `Model` | `Name`, `Desc` chosen by the user |
 | `WorkDir` | `string` | working directory |
 | `Locale` | `string` | UI language (`"fr"`, `"en"`): answer in it |
+| `SessionID` | `string` | stable `Session.ID` of the turn's session (subagents have their own): key for the agent's own records |
 
 Turn outputs:
 
@@ -75,6 +76,8 @@ Turn outputs:
 | `b := t.Text(); b.Write(s); b.Done()` | streamed assistant text |
 | `b := t.Think(); b.Write(s); b.Done()` | streamed reasoning, collapsed to "Thought for Ns" on `Done` |
 | `c := t.Tool(name, arg); c.File(path); c.Done(output)` | tool call row; `File` makes the arg a link to the preview; output lines starting with `+`/`-` are colored as a diff |
+| `c.Diff(old, new)` | show a file change instead of the output: removed/added lines, line numbers, 3 lines of context, "+3 -1" in the header; unfolded |
+| `d, err := t.Approve(ctx, oriagent.ApprovalRequest{Title, Detail, Diff, Old, New, AllowSession})` | approval card in the transcript; blocks until the user answers `oriagent.Allow`, `AllowSession` (button only with `AllowSession: true`) or `Deny`; Stop withdraws it (`Deny`, `ctx.Err()`); a subagent's request shows in the root session; the agent decides what needs approval (e.g. `t.AskEdits`) and remembers `AllowSession` per `t.SessionID` |
 | `l := t.Tasks(items...)` then `l.Advance(i)`, `l.Set(i, oriagent.TaskDone)` | live checklist; item 0 starts running |
 | `s := t.Subagent(title, prompt)` … `s.Finish(report)` | child session in the sidebar + clickable "Agent" call; write into `s` like any Turn; `report` becomes the call output |
 | `t.Notify(msg)` | toast |

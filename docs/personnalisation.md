@@ -183,7 +183,7 @@ s.Spawn("Lancer les tests") // un sous-agent
 Projects: []*oriagent.Project{oriagent.NewProject("site-web", s)},
 ```
 
-Mettez `Expanded: true` sur un message d'outil pour l'afficher déplié, `Busy: true` sur une session pour l'indicateur d'activité, `Open: false` sur un projet pour le replier.
+Mettez `Expanded: true` sur un message d'outil pour l'afficher déplié, `HasDiff: true` avec `DiffOld` et `DiffNew` pour qu'il montre une modification sous forme de diff, `ID` sur une session restaurée pour que l'agent la reconnaisse (`Turn.SessionID` ; ori-agent en donne un aux autres, voir `NewSessionID`), `Busy: true` sur une session pour l'indicateur d'activité, `Open: false` sur un projet pour le replier.
 
 ## Fonctionnalités
 

@@ -37,6 +37,10 @@ type Turn struct {
 	Model         Model
 	WorkDir       string
 	Locale        string // interface language, so the agent can answer in it
+	// SessionID is the Session.ID of the turn's session, stable across
+	// turns and, when the application restores sessions with their ID,
+	// across launches.
+	SessionID string
 
 	app     *App
 	s       *Session
@@ -112,6 +116,14 @@ func (c *ToolCall) File(path string) *ToolCall {
 	return c
 }
 
+// Diff shows the change the call made to a file, from old to new, in
+// place of its output, unfolded; the header counts the lines added and
+// removed.
+func (c *ToolCall) Diff(old, new string) *ToolCall {
+	c.t.app.update(func() { c.m.HasDiff, c.m.DiffOld, c.m.DiffNew, c.m.Expanded = true, old, new, true })
+	return c
+}
+
 // Done marks the call finished with its output (shown when expanded).
 func (c *ToolCall) Done(output string) {
 	c.t.app.update(func() { c.m.Output, c.m.Running = output, false })
@@ -164,7 +176,7 @@ func (t *Turn) Subagent(title, prompt string) *Turn {
 		t.s.add(call.m)
 		t.created = append(t.created, call.m)
 		sub.add(UserMsg(prompt))
-		child = &Turn{Prompt: prompt, Thinking: t.Thinking, AllowCommands: t.AllowCommands, AskEdits: t.AskEdits, Model: t.Model, WorkDir: t.WorkDir, Locale: t.Locale, app: t.app, s: sub, parent: call}
+		child = &Turn{Prompt: prompt, Thinking: t.Thinking, AllowCommands: t.AllowCommands, AskEdits: t.AskEdits, Model: t.Model, WorkDir: t.WorkDir, Locale: t.Locale, SessionID: sub.ID, app: t.app, s: sub, parent: call}
 	})
 	return child
 }
@@ -201,6 +213,9 @@ func (t *Turn) Notify(msg string) {
 // Called with the lock held.
 func (t *Turn) closeOpen() {
 	for _, m := range t.created {
+		if ap := m.approval; ap != nil && !ap.done {
+			ap.done, ap.canceled = true, true // left unanswered: no live buttons
+		}
 		if m.Running {
 			if m.Kind == KindThinking && m.Secs == 0 {
 				m.Secs = 1
@@ -242,7 +257,7 @@ func (a *App) startTurn(s *Session, prompt string, atts []*Attachment, fn TurnFu
 	s.Busy, s.cancel = true, cancel
 	perms := a.permissions(s)
 	t := &Turn{Prompt: prompt, Attachments: atts, History: hist, Thinking: a.setup.thinking.Value,
-		AllowCommands: perms.AllowCommands, AskEdits: perms.AskEdits, Model: a.model(), WorkDir: a.sessionWorkDir(s), Locale: a.tr.Locale(), app: a, s: s}
+		AllowCommands: perms.AllowCommands, AskEdits: perms.AskEdits, Model: a.model(), WorkDir: a.sessionWorkDir(s), Locale: a.tr.Locale(), SessionID: s.ensureID(), app: a, s: s}
 	go func() {
 		err := fn(ctx, t)
 		canceled := ctx.Err() != nil

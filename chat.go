@@ -184,6 +184,8 @@ func (a *App) message(gtx C, m *Message) D {
 		return a.toolCall(gtx, m)
 	case KindTasks:
 		return a.taskList(gtx, m)
+	case KindApproval:
+		return a.approvalCard(gtx, m)
 	case KindCommand:
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			layout.Rigid(func(gtx C) D {
@@ -281,6 +283,10 @@ func (a *App) toolCall(gtx C, m *Message) D {
 							case m.Expanded:
 								hint = a.t("msg.hide")
 							}
+							if m.HasDiff && !m.Running {
+								_, stat := m.diff.view(th, m.DiffOld, m.DiffNew, a.t("diff.none"))
+								hint = stat + " · " + hint
+							}
 							c := th.Muted
 							if m.toggle.Hovered() || m.toggleTail.Hovered() {
 								c = th.Text
@@ -298,6 +304,10 @@ func (a *App) toolCall(gtx C, m *Message) D {
 			return layout.Inset{Top: 8, Left: 18}.Layout(gtx, func(gtx C) D {
 				gtx.Constraints.Min.X = gtx.Constraints.Max.X
 				return ui.Bordered(gtx, th.Code, th.Border, 8, func(gtx C) D {
+					if m.HasDiff {
+						w, _ := m.diff.view(th, m.DiffOld, m.DiffNew, a.t("diff.none"))
+						return layout.UniformInset(10).Layout(gtx, w)
+					}
 					return layout.UniformInset(10).Layout(gtx, th.CodeLines(m.Output))
 				})
 			})

@@ -2,6 +2,8 @@ package oriagent
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 
 	"gioui.org/widget"
 )
@@ -17,6 +19,7 @@ const (
 	KindTasks                 // task list
 	KindCommand               // slash command and its output
 	KindNotice                // interruption or error
+	KindApproval              // a request the user allows or denies (Turn.Approve)
 )
 
 type TaskStatus int
@@ -47,6 +50,13 @@ type Message struct {
 	FilePath string   // file behind a tool call: a click previews it
 	Error    bool     // KindNotice: an error rather than an interruption
 	Expanded bool     // tool output or reasoning shown
+	// With HasDiff, a tool call shows the change from DiffOld to DiffNew
+	// instead of its output (ToolCall.Diff).
+	HasDiff          bool
+	DiffOld, DiffNew string
+
+	diff     diffCache
+	approval *approval
 
 	Attachments []*Attachment
 
@@ -55,6 +65,10 @@ type Message struct {
 
 // Session is a conversation; Children are the subagents it spawned.
 type Session struct {
+	// ID identifies the session for the agent (Turn.SessionID), so that it
+	// finds its own records again. Applications set it on the sessions
+	// they restore; ori-agent gives one to the others.
+	ID       string
 	Title    string
 	Messages []*Message
 	Children []*Session
@@ -70,13 +84,28 @@ type Session struct {
 
 func (s *Session) add(m *Message) { s.Messages = append(s.Messages, m) }
 
+// NewSessionID returns a random identifier, as given to new sessions.
+func NewSessionID() string {
+	b := make([]byte, 16)
+	_, _ = rand.Read(b)
+	return hex.EncodeToString(b)
+}
+
+// ensureID gives s an identifier if it has none.
+func (s *Session) ensureID() string {
+	if s.ID == "" {
+		s.ID = NewSessionID()
+	}
+	return s.ID
+}
+
 func (s *Session) Project() *Project { return s.project }
 func (s *Session) Parent() *Session  { return s.parent }
 
 // Spawn attaches a subagent session to s (for building demo trees; agents use
 // Turn.Subagent).
 func (s *Session) Spawn(title string) *Session {
-	c := &Session{Title: title, project: s.project, parent: s}
+	c := &Session{ID: NewSessionID(), Title: title, project: s.project, parent: s}
 	s.Children = append(s.Children, c)
 	s.Open = true
 	return c
@@ -113,6 +142,7 @@ func (p *Project) Add(s *Session) {
 	var walk func(s *Session)
 	walk = func(s *Session) {
 		s.project = p
+		s.ensureID()
 		for _, c := range s.Children {
 			walk(c)
 		}

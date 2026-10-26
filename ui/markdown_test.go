@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -100,5 +101,35 @@ func TestFitColumns(t *testing.T) {
 		if got := fitColumns(c.natural, c.least, c.avail); !reflect.DeepEqual(got, c.want) {
 			t.Errorf("fitColumns(%v, %v, %d) = %v, want %v", c.natural, c.least, c.avail, got, c.want)
 		}
+	}
+}
+
+func TestDiffLines(t *testing.T) {
+	old := "a\nb\nc\nd\ne\nf\ng\nh\ni\nj\n"
+	new := "a\nb\nC\nd\ne\nf\ng\nh\ni\nj\nk\n"
+	lines := DiffLines(old, new)
+	if a, r := DiffStat(lines); a != 2 || r != 1 {
+		t.Fatalf("stat +%d -%d: %+v", a, r, lines)
+	}
+	var changed []string
+	for _, l := range lines {
+		if l.Op != ' ' {
+			changed = append(changed, fmt.Sprintf("%c%d/%d %s", l.Op, l.Old, l.New, l.Text))
+		}
+	}
+	if want := []string{"-3/0 c", "+0/3 C", "+0/11 k"}; !reflect.DeepEqual(changed, want) {
+		t.Errorf("changes %q, want %q", changed, want)
+	}
+	// Two changes far apart: two hunks, each with its context.
+	h := Hunks(lines, 3)
+	if len(h) != 2 || h[0][0].Text != "a" || h[1][len(h[1])-1].Text != "k" {
+		t.Errorf("hunks: %+v", h)
+	}
+	if Hunks(DiffLines("x\n", "x\n"), 3) != nil {
+		t.Error("no change, yet hunks")
+	}
+	// A new file: everything added.
+	if a, r := DiffStat(DiffLines("", "un\ndeux")); a != 2 || r != 0 {
+		t.Errorf("new file +%d -%d", a, r)
 	}
 }
