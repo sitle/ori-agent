@@ -170,8 +170,14 @@ type Config struct {
 	Pomodoro  PomodoroConfig
 	Disable   Features
 
-	Placeholder   string // composer hint
-	ModeLabel     string // chip in the composer ("-" hides it)
+	Placeholder string // composer hint
+	ModeLabel   string // chip in the composer ("-" hides it); unused with Modes
+
+	// Modes turn the composer chip into a menu of working modes, kept per
+	// project (Project.Mode); OnMode keeps the user's choice (p nil: the
+	// sessions out of projects). An error puts the previous mode back.
+	Modes         []Mode
+	OnMode        func(ctx context.Context, p *Project, mode string) error
 	EmptyTitle    string // empty session
 	EmptySubtitle string // default: the working directory
 

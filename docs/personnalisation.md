@@ -14,7 +14,7 @@ Tout se règle dans la structure `oriagent.Config` passée à `oriagent.Run`. To
 | `LightMode` | Démarrer en thème clair | thème sombre |
 | `Width`, `Height` | Taille initiale de la fenêtre | 1280 × 820 |
 | `Placeholder` | Texte d'invite de la zone de saisie | « Décrivez une tâche… » |
-| `ModeLabel` | Badge de la zone de saisie (`"-"` le masque) | « Mode auto » |
+| `ModeLabel` | Badge de la zone de saisie (`"-"` le masque), quand l'application ne donne pas de `Modes` | « Mode auto » |
 | `EmptyTitle`, `EmptySubtitle` | Écran d'une session vide | « Sur quoi travaille-t-on ? », dossier de travail |
 
 Les textes peuvent être des clés de traduction (voir [Langues](langues.md)).
@@ -139,6 +139,27 @@ oriagent.Config{
 
 Le profil et les modèles fixés au démarrage peuvent changer ensuite, par exemple après une connexion : `c.SetUser(u)` et `c.SetModels(ms)` dans une commande, `t.SetUser(u)` et `t.SetModels(ms)` depuis un tour d'agent (lancé par `c.RunTurn`). Le modèle choisi reste sélectionné si son nom figure encore dans la liste, sinon c'est le premier ; `OnSettings` est appelé si la sélection change.
 
+## Modes de travail
+
+`Modes` transforme le badge de la zone de saisie en menu de modes : l'application les définit et décide de ce qu'ils permettent (par exemple « Plan », « Lecture », « Édition », « Auto »).
+
+```go
+Modes: []oriagent.Mode{
+	{ID: "plan", Label: "mode.plan", Desc: "mode.plan.desc"},
+	{ID: "edition", Label: "mode.edition", Desc: "mode.edition.desc"},
+},
+OnMode: func(ctx context.Context, p *oriagent.Project, mode string) error {
+	return enregistrerLeMode(p, mode) // p nil : les sessions hors projet
+},
+```
+
+- Le mode appartient au projet de la session (`Project.Mode`, à remplir au démarrage), ou à l'application pour les sessions hors projet ; le premier mode de la liste sert par défaut.
+- Le choix de l'utilisateur s'applique tout de suite, puis `OnMode` est appelé dans une goroutine ; une erreur remet le mode précédent et s'affiche.
+- L'agent lit le mode du tour dans `Turn.Mode`, et peut le changer lui-même avec `t.SetMode` (par exemple quand l'utilisateur approuve un plan) ; une commande le change avec `c.SetMode`, et le lit avec `c.Mode()`. Ni l'un ni l'autre n'appelle `OnMode`.
+- Un mode qui n'aboutit pas dans `OnMode` alors que l'utilisateur en a déjà choisi un autre ne remet pas l'ancien : le dernier choix est gardé.
+
+L'agent simulé fournit ses propres modes, `sim.Modes` : « Édition » (demande avant de modifier, selon les autorisations), « Plan » (un plan à valider, puis passage en Édition) et « Auto » (modifie sans demander). L'exemple Anna les utilise et garde le mode de chaque projet créé dans son `project.json` (`OnMode`).
+
 ## Projets
 
 Un projet regroupe des sessions dans la barre latérale. En plus de son nom et de ses sessions, il peut avoir :
@@ -148,6 +169,7 @@ Un projet regroupe des sessions dans la barre latérale. En plus de son nom et d
 | `Description` | Un texte libre, modifiable par l'utilisateur (ce n'est pas une clé de traduction) |
 | `WorkDir` | Son dossier : il devient `Turn.WorkDir` pour ses sessions et leurs sous-agents, et c'est lui qui est affiché, copié et proposé pour joindre un fichier. Vide : le dossier de la Configuration |
 | `Permissions` | Ses autorisations (`AllowCommands`, `AskEdits`), transmises à l'agent à la place de celles de la Configuration. Nil : celles de la Configuration |
+| `Mode` | Son mode de travail, parmi `Config.Modes` (voir « Modes de travail ») |
 | `Permanent` | Pas de bouton de suppression sur sa page (par exemple le dossier où l'application a été lancée) |
 
 Chaque ligne de projet porte un « + » qui démarre une session dedans, ou reprend sa session vide ; `c.NewSessionIn(p)` fait de même depuis une commande.

@@ -22,6 +22,11 @@ type ApprovalRequest struct {
 	Old, New string
 	// AllowSession offers "Allow for this session" besides allow and deny.
 	AllowSession bool
+	// AllowLabel and DenyLabel replace "Allow" and "Deny" on the buttons
+	// ("Run the plan", "Keep planning"); they may be translation keys.
+	AllowLabel, DenyLabel string
+	// Markdown shows Detail as formatted text (a plan) rather than code.
+	Markdown bool
 }
 
 // Decision is the user's answer to an ApprovalRequest.
@@ -128,6 +133,11 @@ func (a *App) approvalCard(gtx C, m *Message) D {
 			if ap.req.Detail != "" {
 				children = append(children, ui.VSpace(10), layout.Rigid(func(gtx C) D {
 					gtx.Constraints.Min.X = gtx.Constraints.Max.X
+					if ap.req.Markdown {
+						return ui.Bordered(gtx, th.Bg, th.Border, 6, func(gtx C) D {
+							return layout.UniformInset(12).Layout(gtx, th.Markdown(14, ap.req.Detail))
+						})
+					}
 					return ui.Bordered(gtx, th.Code, th.Border, 6, func(gtx C) D {
 						return layout.UniformInset(10).Layout(gtx, th.CodeLines(ap.req.Detail))
 					})
@@ -155,15 +165,22 @@ func (a *App) approvalCard(gtx C, m *Message) D {
 					}
 					return th.Label(13, label, c, font.Medium).Layout(gtx)
 				}
+				allow, deny := a.t("approval.allow"), a.t("approval.deny")
+				if ap.req.AllowLabel != "" {
+					allow = a.t(ap.req.AllowLabel)
+				}
+				if ap.req.DenyLabel != "" {
+					deny = a.t(ap.req.DenyLabel)
+				}
 				buttons := []layout.FlexChild{
-					layout.Rigid(func(gtx C) D { return th.Button(gtx, &ap.allow, a.t("approval.allow"), ui.Primary) }),
+					layout.Rigid(func(gtx C) D { return th.Button(gtx, &ap.allow, allow, ui.Primary) }),
 				}
 				if ap.req.AllowSession {
 					buttons = append(buttons, ui.HSpace(8),
 						layout.Rigid(func(gtx C) D { return th.Button(gtx, &ap.always, a.t("approval.always"), ui.Secondary) }))
 				}
 				buttons = append(buttons, ui.HSpace(8),
-					layout.Rigid(func(gtx C) D { return th.Button(gtx, &ap.deny, a.t("approval.deny"), ui.Secondary) }))
+					layout.Rigid(func(gtx C) D { return th.Button(gtx, &ap.deny, deny, ui.Secondary) }))
 				return layout.Flex{Alignment: layout.Middle}.Layout(gtx, buttons...)
 			}))
 			return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)

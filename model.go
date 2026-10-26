@@ -74,6 +74,9 @@ type Session struct {
 	Children []*Session
 	Busy     bool
 	Open     bool // subagents shown in the sidebar
+	// ContextUsed and ContextWindow fill the context gauge of the composer
+	// (Turn.SetContext); applications restore them with the session.
+	ContextUsed, ContextWindow int
 
 	project *Project
 	parent  *Session
@@ -122,8 +125,11 @@ type Project struct {
 	Permissions *Permissions
 	// Permanent projects cannot be removed from their page.
 	Permanent bool
-	Sessions  []*Session
-	Open      bool
+	// Mode is the working mode of the project's sessions, among
+	// Config.Modes (the composer chip); empty: the first one.
+	Mode     string
+	Sessions []*Session
+	Open     bool
 
 	btn, add, manage widget.Clickable
 }

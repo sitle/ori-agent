@@ -122,6 +122,21 @@ sous.Finish("2 documents trouvés.") // devient la sortie de l'appel « Agent »
 t.Notify("Analyse terminée")
 ```
 
+Les boutons peuvent porter d'autres libellés (`AllowLabel`, `DenyLabel`), et `Markdown: true` affiche `Detail` comme un texte mis en forme plutôt que comme du code, par exemple pour faire valider un plan :
+
+```go
+d, err := t.Approve(ctx, oriagent.ApprovalRequest{
+	Title: "Exécuter ce plan ?", Detail: plan, Markdown: true,
+	AllowLabel: "Exécuter le plan", DenyLabel: "Continuer à planifier",
+})
+```
+
+![Un plan à valider en mode Plan, avec la jauge de contexte](images/plan.png)
+
+### Le mode et le contexte
+
+`t.Mode` est le mode choisi dans le badge de la zone de saisie au début du tour (voir « Modes de travail » dans la personnalisation) ; `t.SetMode(id)` le change, pour le badge et les tours suivants. `t.SetContext(utilises, fenetre)` remplit la jauge de contexte de la zone de saisie, en jetons : l'agent l'appelle après chaque réponse du modèle ; une fenêtre de 0 masque la jauge. L'application restaure la jauge avec la session (`Session.ContextUsed`, `ContextWindow`).
+
 ### Mettre à jour le profil et les modèles
 
 Un tour de connexion (lancé par une commande `/login` avec `c.RunTurn`) peut remplacer ce qui a été fixé au démarrage :

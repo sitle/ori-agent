@@ -36,6 +36,18 @@ var Translations = map[string]map[string]string{
 		"sim.edit.output": "Simulation : %s n'a pas été modifié sur le disque.",
 		"sim.edit.denied": "Modification de %s refusée : je n'y touche pas.",
 
+		"sim.mode.edit":      "Édition",
+		"sim.mode.edit.desc": "Demande avant de modifier un fichier, selon les autorisations",
+		"sim.mode.plan":      "Plan",
+		"sim.mode.plan.desc": "Propose un plan à valider avant d'agir",
+		"sim.mode.auto":      "Auto",
+		"sim.mode.auto.desc": "Modifie les fichiers sans demander",
+		"sim.plan.title":     "Exécuter ce plan ?",
+		"sim.plan":           "1. Relire **%s** et le reste du dossier.\n2. Ajouter une note en tête du fichier.\n3. Lancer les tests et résumer les constats.",
+		"sim.plan.run":       "Exécuter le plan",
+		"sim.plan.keep":      "Continuer à planifier",
+		"sim.plan.kept":      "D'accord, je reste en mode plan : rien n'est modifié.",
+
 		"sim.att.think": "L'utilisateur a joint %d fichier(s) : %s. Je lis chacun avant de répondre, " +
 			"puis je résume leur contenu. C'est une simulation : le résumé reste générique.",
 		"sim.att.read":  "J'ai lu les documents joints - simulation, aucun modèle n'est connecté :",
@@ -87,6 +99,18 @@ var Translations = map[string]map[string]string{
 		"sim.edit.note":   "Note: reviewed during a simulated session.",
 		"sim.edit.output": "Simulated: %s was not changed on disk.",
 		"sim.edit.denied": "Change to %s denied: I'll leave it alone.",
+
+		"sim.mode.edit":      "Edit",
+		"sim.mode.edit.desc": "Asks before changing a file, as the permissions say",
+		"sim.mode.plan":      "Plan",
+		"sim.mode.plan.desc": "Proposes a plan to approve before acting",
+		"sim.mode.auto":      "Auto",
+		"sim.mode.auto.desc": "Changes files without asking",
+		"sim.plan.title":     "Run this plan?",
+		"sim.plan":           "1. Read **%s** and the rest of the folder.\n2. Add a note at the top of the file.\n3. Run the tests and summarize the findings.",
+		"sim.plan.run":       "Run the plan",
+		"sim.plan.keep":      "Keep planning",
+		"sim.plan.kept":      "All right, I'll stay in plan mode: nothing is changed.",
 
 		"sim.att.think": "The user attached %d file(s): %s. I'll read each one before answering, " +
 			"then summarize what they contain. This is a simulation, so the summary stays generic.",

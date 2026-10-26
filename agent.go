@@ -41,6 +41,9 @@ type Turn struct {
 	// turns and, when the application restores sessions with their ID,
 	// across launches.
 	SessionID string
+	// Mode is the working mode chosen in the composer chip when the turn
+	// started (Config.Modes); empty without modes.
+	Mode string
 
 	app     *App
 	s       *Session
@@ -263,7 +266,7 @@ func (a *App) startTurn(s *Session, prompt string, atts []*Attachment, fn TurnFu
 	s.Busy, s.cancel = true, cancel
 	perms := a.permissions(s)
 	t := &Turn{Prompt: prompt, Attachments: atts, History: hist, Thinking: a.setup.thinking.Value,
-		AllowCommands: perms.AllowCommands, AskEdits: perms.AskEdits, Model: a.model(), WorkDir: a.sessionWorkDir(s), Locale: a.tr.Locale(), SessionID: s.ensureID(), app: a, s: s}
+		AllowCommands: perms.AllowCommands, AskEdits: perms.AskEdits, Model: a.model(), WorkDir: a.sessionWorkDir(s), Locale: a.tr.Locale(), SessionID: s.ensureID(), Mode: a.sessionMode(s), app: a, s: s}
 	go func() {
 		err := fn(ctx, t)
 		canceled := ctx.Err() != nil

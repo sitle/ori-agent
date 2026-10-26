@@ -28,6 +28,7 @@ type TurnOptions struct {
 	Model         Model
 	WorkDir       string
 	Locale        string // default: the configuration's
+	Mode          string // default: the session's (Config.Modes)
 }
 
 // NewHeadless prepares cfg.Agent to run without a window; the translations
@@ -64,7 +65,10 @@ func (h *Headless) Run(ctx context.Context, s *Session, prompt string, atts []*A
 		s.Busy = true
 		t = &Turn{Prompt: prompt, Attachments: atts, History: hist, Thinking: o.Thinking,
 			AllowCommands: o.AllowCommands, AskEdits: o.AskEdits, Model: o.Model, WorkDir: o.WorkDir,
-			Locale: locale, SessionID: s.ensureID(), app: a, s: s}
+			Locale: locale, SessionID: s.ensureID(), Mode: a.sessionMode(s), app: a, s: s}
+		if o.Mode != "" {
+			t.Mode = o.Mode
+		}
 	})
 	if busy {
 		return s, ErrSessionBusy

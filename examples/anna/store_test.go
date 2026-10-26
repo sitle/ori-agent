@@ -40,9 +40,15 @@ func TestStoreProjects(t *testing.T) {
 	if _, err := s.updateProject(ctx, p, oriagent.ProjectEdit{Name: "Budget", Description: "Nouveau", Permissions: perms}); err != nil {
 		t.Fatal(err)
 	}
+	if err := s.saveMode(ctx, p, "plan"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.updateProject(ctx, p, oriagent.ProjectEdit{Name: "Budget", Description: "Nouveau", Permissions: perms}); err != nil {
+		t.Fatal(err)
+	}
 	ps := s.projects()
-	if len(ps) != 1 || ps[0].Name != "Budget" || ps[0].Permissions == nil || !ps[0].Permissions.AskEdits {
-		t.Fatalf("reloaded projects = %+v", ps)
+	if len(ps) != 1 || ps[0].Name != "Budget" || ps[0].Permissions == nil || !ps[0].Permissions.AskEdits || ps[0].Mode != "plan" {
+		t.Fatalf("reloaded projects = %+v (the mode must survive an edit)", ps)
 	}
 
 	if err := s.deleteProject(ctx, p); err != nil {

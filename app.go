@@ -41,6 +41,7 @@ type App struct {
 	view     string
 	focus    bool
 	toast    ui.Toast
+	modes    modeState
 
 	// chat
 	editor     widget.Editor

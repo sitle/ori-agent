@@ -56,4 +56,35 @@ func TestRunHeadless(t *testing.T) {
 	if data, _ := os.ReadFile(note); string(data) != "# Note\n" {
 		t.Errorf("the file was written: %q", data)
 	}
+	if s.ContextWindow == 0 || s.ContextUsed == 0 {
+		t.Errorf("context gauge not filled: %d/%d", s.ContextUsed, s.ContextWindow)
+	}
+}
+
+// In plan mode, the agent asks to run a plan, then edits without asking
+// again and switches to edit mode.
+func TestRunPlanMode(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "note.md"), []byte("# Note\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	h := oriagent.NewHeadless(oriagent.Config{Agent: New(), Modes: Modes})
+	var asked []oriagent.ApprovalRequest
+	h.Approve = func(r oriagent.ApprovalRequest) oriagent.Decision {
+		asked = append(asked, r)
+		return oriagent.Allow
+	}
+	p := oriagent.NewProject("Notes")
+	p.Mode = ModePlan
+	s := &oriagent.Session{}
+	p.Add(s)
+	if _, err := h.Run(context.Background(), s, "relis", nil, oriagent.TurnOptions{AskEdits: true, WorkDir: dir, Locale: "fr"}); err != nil {
+		t.Fatal(err)
+	}
+	if len(asked) != 1 || !asked[0].Markdown || asked[0].AllowLabel != "Exécuter le plan" {
+		t.Fatalf("approvals: %+v", asked)
+	}
+	if len(edits(s)) != 1 || p.Mode != ModeEdit {
+		t.Errorf("%d edits, mode %q", len(edits(s)), p.Mode)
+	}
 }

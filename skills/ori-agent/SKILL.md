@@ -77,7 +77,9 @@ Turn outputs:
 | `b := t.Think(); b.Write(s); b.Done()` | streamed reasoning, collapsed to "Thought for Ns" on `Done` |
 | `c := t.Tool(name, arg); c.File(path); c.Done(output)` | tool call row; `File` makes the arg a link to the preview; output lines starting with `+`/`-` are colored as a diff |
 | `c.Diff(old, new)` | show a file change instead of the output: removed/added lines, line numbers, 3 lines of context, "+3 -1" in the header; unfolded |
-| `d, err := t.Approve(ctx, oriagent.ApprovalRequest{Title, Detail, Diff, Old, New, AllowSession})` | approval card in the transcript; blocks until the user answers `oriagent.Allow`, `AllowSession` (button only with `AllowSession: true`) or `Deny`; Stop withdraws it (`Deny`, `ctx.Err()`); a subagent's request shows in the root session; the agent decides what needs approval (e.g. `t.AskEdits`) and remembers `AllowSession` per `t.SessionID` |
+| `t.Mode`, `t.SetMode(id)` | mode of the turn from the composer chip (`Config.Modes`); SetMode changes it for the chip and the next turns (no `OnMode`) |
+| `t.SetContext(used, window)` | context gauge in the composer, in tokens; window 0 hides it; restored with `Session.ContextUsed`, `ContextWindow` |
+| `d, err := t.Approve(ctx, oriagent.ApprovalRequest{Title, Detail, Diff, Old, New, AllowSession, AllowLabel, DenyLabel, Markdown})` | approval card in the transcript; blocks until the user answers `oriagent.Allow`, `AllowSession` (button only with `AllowSession: true`) or `Deny`; Stop withdraws it (`Deny`, `ctx.Err()`); a subagent's request shows in the root session; the agent decides what needs approval (e.g. `t.AskEdits`) and remembers `AllowSession` per `t.SessionID` |
 | `l := t.Tasks(items...)` then `l.Advance(i)`, `l.Set(i, oriagent.TaskDone)` | live checklist; item 0 starts running |
 | `s := t.Subagent(title, prompt)` … `s.Finish(report)` | child session in the sidebar + clickable "Agent" call; write into `s` like any Turn; `report` becomes the call output |
 | `t.Notify(msg)` | toast |
@@ -177,7 +179,8 @@ All fields optional (`oriagent.Config`):
 | `Dictation` | `Dictation` | simulated |
 | `Pomodoro` | `PomodoroConfig` | `{Focus, Short, Long time.Duration}`, 25/5/15 min |
 | `Disable` | `Features` | `Voice, Pomodoro, Attachments, Preview, Setup, Profile, ThemeToggle, BuiltinCommands bool` |
-| `Placeholder`, `ModeLabel`, `EmptyTitle`, `EmptySubtitle` | `string` | text or translation keys; `ModeLabel: "-"` hides the chip |
+| `Placeholder`, `ModeLabel`, `EmptyTitle`, `EmptySubtitle` | `string` | text or translation keys; `ModeLabel: "-"` hides the chip (without `Modes`) |
+| `Modes`, `OnMode` | `[]Mode{ID, Label, Desc}`, `func(ctx, *Project, mode string) error` | the chip becomes a menu of working modes, kept per project (`Project.Mode`; nil project: the app's); OnMode keeps the choice on a goroutine, an error puts the previous mode back; `c.Mode()`, `c.SetMode(id)` in commands |
 | `StartView`, `SetupStep`, `Attach`, `Preview` | | startup state: `"chat"`, `"setup"`, `"profile"` or a page ID; step 1-4; files; file to preview |
 | `Width`, `Height` | `unit.Dp` | 1280×820 |
 
@@ -314,7 +317,7 @@ s, err := h.Run(ctx, nil, "fix the test", nil, oriagent.TurnOptions{WorkDir: dir
 
 ## Simulated agent
 
-`github.com/sitle/ori-agent/sim`: `a := sim.New(); a.DocName = "AGENT.md"`; use `a` as `Config.Agent`, `a.Commands()` for `/review` and `/init`, and merge `sim.Translations`. Good for UI work without a model and as a structural reference (`sim/sim.go`).
+`github.com/sitle/ori-agent/sim`: `a := sim.New(); a.DocName = "AGENT.md"`; use `a` as `Config.Agent`, `a.Commands()` for `/review` and `/init`, and merge `sim.Translations`; `Modes: sim.Modes` gives its working modes (`sim.ModeEdit`, `ModePlan`: a Markdown plan to approve, then edit mode; `ModeAuto`: no approval), and it fills the context gauge. Good for UI work without a model and as a structural reference (`sim/sim.go`).
 
 ## Common mistakes
 

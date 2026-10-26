@@ -30,6 +30,7 @@ type projectMeta struct {
 	Name        string                `json:"name"`
 	Description string                `json:"description,omitempty"`
 	Permissions *oriagent.Permissions `json:"permissions,omitempty"`
+	Mode        string                `json:"mode,omitempty"` // Config.Modes
 }
 
 func newStore(dir string) *store {
@@ -112,7 +113,7 @@ func (s *store) projects() []*oriagent.Project {
 			continue
 		}
 		p := oriagent.NewProject(m.Name)
-		p.Description, p.Permissions, p.WorkDir, p.Open = m.Description, m.Permissions, dir, false
+		p.Description, p.Permissions, p.WorkDir, p.Open, p.Mode = m.Description, m.Permissions, dir, false, m.Mode
 		ps = append(ps, p)
 	}
 	return ps
@@ -165,12 +166,29 @@ func (s *store) updateProject(ctx context.Context, p *oriagent.Project, e oriage
 		return e, errors.New("le nom du projet est obligatoire")
 	}
 	if s.owned(p) {
-		m := projectMeta{Name: e.Name, Description: e.Description, Permissions: e.Permissions}
-		if err := s.writeJSON(filepath.Join("projects", filepath.Base(p.WorkDir), projectFile), m); err != nil {
+		name := filepath.Join("projects", filepath.Base(p.WorkDir), projectFile)
+		var m projectMeta
+		s.readJSON(name, &m) // keeps the saved mode
+		m.Name, m.Description, m.Permissions = e.Name, e.Description, e.Permissions
+		if err := s.writeJSON(name, m); err != nil {
 			return e, err
 		}
 	}
 	return e, nil
+}
+
+// saveMode is Config.OnMode: created projects keep their mode in their
+// project.json; the demo ones and the sessions out of projects only in
+// memory.
+func (s *store) saveMode(ctx context.Context, p *oriagent.Project, mode string) error {
+	if p == nil || !s.owned(p) {
+		return nil
+	}
+	name := filepath.Join("projects", filepath.Base(p.WorkDir), projectFile)
+	var m projectMeta
+	s.readJSON(name, &m)
+	m.Mode = mode
+	return s.writeJSON(name, m)
 }
 
 // deleteProject is Config.OnDeleteProject: a created project's folder is

@@ -92,12 +92,7 @@ func (a *App) composer(gtx C) D {
 									}
 									return layout.Inset{Right: 8}.Layout(gtx, a.attachButton)
 								}),
-								layout.Rigid(func(gtx C) D {
-									if a.cfg.ModeLabel == "-" {
-										return D{}
-									}
-									return layout.Inset{Right: 10}.Layout(gtx, func(gtx C) D { return th.Chip(gtx, a.t(a.cfg.ModeLabel), th.Accent) })
-								}),
+								layout.Rigid(a.modeChip),
 								layout.Flexed(1, func(gtx C) D {
 									if a.voice.active() {
 										return a.voiceMeter(gtx)
@@ -105,6 +100,7 @@ func (a *App) composer(gtx C) D {
 									return ui.OneLine(gtx, th.Mono(12, a.sessionWorkDir(a.cur), th.Muted))
 								}),
 								ui.HSpace(10),
+								layout.Rigid(a.contextGauge),
 								layout.Rigid(func(gtx C) D {
 									if a.cfg.Disable.Voice {
 										return D{}

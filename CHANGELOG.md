@@ -4,6 +4,16 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [0.6.0] - 2026-10-26
+
+### Ajouté
+
+- Modes de travail : `Config.Modes` (`Mode{ID, Label, Desc}`) transforme le badge de la zone de saisie en menu ; le mode est gardé par projet (`Project.Mode`), transmis à l'agent (`Turn.Mode`, `TurnOptions.Mode`) et enregistré par `Config.OnMode` (une erreur remet le mode précédent). `Turn.SetMode`, `Ctl.Mode` et `Ctl.SetMode` le lisent et le changent sans appeler `OnMode`.
+- Jauge de contexte dans la zone de saisie : `Turn.SetContext(utilisés, fenêtre)`, pourcentage et anneau orange à 70 %, rouge à 90 % ; `Session.ContextUsed` et `ContextWindow` pour la restaurer.
+- Approbation : `ApprovalRequest.AllowLabel` et `DenyLabel` changent les libellés des boutons, `Markdown` affiche le détail comme un texte mis en forme (un plan à valider).
+- Agent simulé : `sim.Modes` (Édition, Plan, Auto) ; en mode Plan, il fait valider un plan avant d'agir puis passe en Édition ; en Auto, il modifie sans demander ; il remplit la jauge de contexte. L'exemple Anna utilise ces modes et garde celui de chaque projet créé.
+- Capture d'un plan à valider dans la documentation ; captures mises à jour avec le nouveau badge.
+
 ## [0.5.1] - 2026-10-26
 
 ### Corrigé
@@ -117,7 +127,8 @@ Première version publique.
 - Documentation en français dans `docs/` : prise en main, écrire un agent, personnalisation, langues, composants, architecture.
 - Documentation pour les assistants de code : skill `skills/ori-agent/SKILL.md`, `llms.txt`, `AGENTS.md`.
 
-[Non publié]: https://github.com/sitle/ori-agent/compare/v0.5.1...HEAD
+[Non publié]: https://github.com/sitle/ori-agent/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/sitle/ori-agent/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/sitle/ori-agent/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/sitle/ori-agent/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/sitle/ori-agent/compare/v0.3.0...v0.4.0

@@ -29,6 +29,34 @@ type Agent struct {
 
 func New() *Agent { return &Agent{DocName: "AGENT.md"} }
 
+// The working modes the agent understands (Turn.Mode).
+const (
+	ModeEdit = "edit" // edits, asking first as Turn.AskEdits says
+	ModePlan = "plan" // a plan to approve first, then edit mode
+	ModeAuto = "auto" // edits without asking
+)
+
+// Modes are the agent's modes for Config.Modes, edit first; their labels
+// are keys of Translations.
+var Modes = []oriagent.Mode{
+	{ID: ModeEdit, Label: "sim.mode.edit", Desc: "sim.mode.edit.desc"},
+	{ID: ModePlan, Label: "sim.mode.plan", Desc: "sim.mode.plan.desc"},
+	{ID: ModeAuto, Label: "sim.mode.auto", Desc: "sim.mode.auto.desc"},
+}
+
+// contextWindow is the simulated model's context, for the composer gauge.
+const contextWindow = 200_000
+
+// setContext fills the gauge with a rough count: about four characters a
+// token, on top of a fixed system prompt.
+func setContext(t *oriagent.Turn, extra int) {
+	n := len(t.Prompt) + extra
+	for _, h := range t.History {
+		n += len(h.Text)
+	}
+	t.SetContext(12_000+n/4, contextWindow)
+}
+
 // tr translates the agent's own texts in the turn's language, falling back
 // to English.
 func tr(t *oriagent.Turn, key string, args ...any) string {
@@ -158,8 +186,9 @@ func (s *Agent) Run(ctx context.Context, t *oriagent.Turn) error {
 	}
 	sub.Finish(report)
 	tasks.Advance(1)
+	setContext(t, len(listing))
 	if f != "" {
-		if err := s.proposeEdit(ctx, t, f); err != nil {
+		if err := s.act(ctx, t, f); err != nil {
 			return err
 		}
 	}
@@ -180,10 +209,30 @@ func (s *Agent) Run(ctx context.Context, t *oriagent.Turn) error {
 	return err
 }
 
+// act changes f as the turn's mode says: in plan mode, only once the user
+// approved the plan, which then switches to edit mode.
+func (s *Agent) act(ctx context.Context, t *oriagent.Turn, f string) error {
+	if t.Mode != ModePlan {
+		return s.proposeEdit(ctx, t, f, t.Mode == ModeAuto)
+	}
+	d, err := t.Approve(ctx, oriagent.ApprovalRequest{
+		Title: tr(t, "sim.plan.title"), Detail: tr(t, "sim.plan", f), Markdown: true,
+		AllowLabel: tr(t, "sim.plan.run"), DenyLabel: tr(t, "sim.plan.keep"),
+	})
+	if err != nil {
+		return err
+	}
+	if d == oriagent.Deny {
+		return say(ctx, t, tr(t, "sim.plan.kept"))
+	}
+	t.SetMode(ModeEdit)
+	return s.proposeEdit(ctx, t, f, true) // the approved plan covers the edit
+}
+
 // proposeEdit shows a change to the top of f as a diff, without writing it.
 // With Turn.AskEdits, the user approves it first, unless edits were allowed
-// for the whole session before.
-func (s *Agent) proposeEdit(ctx context.Context, t *oriagent.Turn, f string) error {
+// for the whole session before, or noAsk.
+func (s *Agent) proposeEdit(ctx context.Context, t *oriagent.Turn, f string, noAsk bool) error {
 	path := filepath.Join(t.WorkDir, f)
 	old := firstLines(path, 8)
 	if old == "" {
@@ -191,7 +240,7 @@ func (s *Agent) proposeEdit(ctx context.Context, t *oriagent.Turn, f string) err
 	}
 	new := tr(t, "sim.edit.note") + "\n" + old
 	s.mu.Lock()
-	ask := t.AskEdits && !s.allowed[t.SessionID]
+	ask := t.AskEdits && !noAsk && !s.allowed[t.SessionID]
 	s.mu.Unlock()
 	if ask {
 		d, err := t.Approve(ctx, oriagent.ApprovalRequest{Title: tr(t, "sim.edit.title", f), Diff: true, Old: old, New: new, AllowSession: true})
@@ -262,6 +311,7 @@ func (s *Agent) readAttachments(ctx context.Context, t *oriagent.Turn) error {
 	if t.Prompt != "" {
 		ask = tr(t, "sim.att.ask", t.Prompt)
 	}
+	setContext(t, b.Len())
 	return say(ctx, t, tr(t, "sim.att.read")+b.String()+ask+tr(t, "sim.att.tail"))
 }
 

@@ -112,6 +112,10 @@ func main() {
 		OnDeleteProject: st.deleteProject,
 		ProjectFiles:    st.projectFiles,
 
+		// The simulated agent's working modes, kept per project.
+		Modes:  sim.Modes,
+		OnMode: st.saveMode,
+
 		// Word documents in the preview pane (convert.go).
 		Convert: convert,
 
