@@ -4,6 +4,16 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [0.2.1] - 2026-10-26
+
+### Corrigé
+
+- Les tableaux Markdown des réponses et de l'aperçu sont mis en forme au lieu d'être affichés en texte brut : en-tête sur fond teinté, filet entre les lignes, alignement des colonnes (`:---:`, `---:`), texte coupé dans sa cellule quand le tableau est plus large que la place disponible (chaque colonne garde au moins la largeur de son mot le plus long), `\|` dans une cellule.
+
+### Ajouté
+
+- `ui.SplitRow` et `ui.ParseTable` : lecture d'un tableau Markdown (lignes, alignements, présence d'un en-tête).
+
 ## [0.2.0] - 2026-10-25
 
 ### Ajouté
@@ -54,6 +64,7 @@ Première version publique.
 - Documentation en français dans `docs/` : prise en main, écrire un agent, personnalisation, langues, composants, architecture.
 - Documentation pour les assistants de code : skill `skills/ori-agent/SKILL.md`, `llms.txt`, `AGENTS.md`.
 
-[Non publié]: https://github.com/sitle/ori-agent/compare/v0.2.0...HEAD
+[Non publié]: https://github.com/sitle/ori-agent/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/sitle/ori-agent/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/sitle/ori-agent/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/sitle/ori-agent/releases/tag/v0.1.0

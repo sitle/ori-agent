@@ -66,3 +66,39 @@ func TestParseInline(t *testing.T) {
 		}
 	}
 }
+
+func TestParseTable(t *testing.T) {
+	rows, aligns, header := ParseTable([]string{
+		"| Phase | Objet | Coût |",
+		"|:---|:---:|---:|",
+		`| T3 | Réseau \| fibre | 12 |`,
+		"| T5 | Vérifications |",
+	})
+	if !header || !reflect.DeepEqual(aligns, []Align{AlignLeft, AlignCenter, AlignRight}) {
+		t.Fatalf("header %v, aligns %v", header, aligns)
+	}
+	want := [][]string{{"Phase", "Objet", "Coût"}, {"T3", "Réseau | fibre", "12"}, {"T5", "Vérifications"}}
+	if !reflect.DeepEqual(rows, want) {
+		t.Errorf("rows = %q", rows)
+	}
+	// Without a separator row, every row is a body row.
+	if rows, _, header := ParseTable([]string{"| a | b |", "| c | d |"}); header || len(rows) != 2 {
+		t.Errorf("no header: %v %q", header, rows)
+	}
+}
+
+func TestFitColumns(t *testing.T) {
+	for _, c := range []struct {
+		natural, least []int
+		avail          int
+		want           []int
+	}{
+		{[]int{100, 200}, []int{50, 80}, 400, []int{100, 200}},  // fits
+		{[]int{100, 500}, []int{60, 100}, 300, []int{72, 227}},  // words kept, rest shared
+		{[]int{100, 500}, []int{100, 200}, 150, []int{50, 100}}, // even the words are too wide
+	} {
+		if got := fitColumns(c.natural, c.least, c.avail); !reflect.DeepEqual(got, c.want) {
+			t.Errorf("fitColumns(%v, %v, %d) = %v, want %v", c.natural, c.least, c.avail, got, c.want)
+		}
+	}
+}

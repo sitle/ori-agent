@@ -340,7 +340,7 @@ func (t *Theme) MarkdownBlock(gtx C, size unit.Sp, b MDBlock) D {
 			})
 		})
 	case MDTable:
-		return layout.Inset{Top: 2, Bottom: 2}.Layout(gtx, t.CodeLines(strings.Join(b.Lines, "\n")))
+		return layout.Inset{Top: 4, Bottom: 6}.Layout(gtx, func(gtx C) D { return t.mdTable(gtx, size*93/100, b.Lines) })
 	case MDRule:
 		return layout.Inset{Top: 10, Bottom: 10}.Layout(gtx, t.HLine)
 	case MDBlank:
