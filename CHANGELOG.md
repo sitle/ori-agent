@@ -4,7 +4,9 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
-## [0.2.3] - 2026-10-26
+## [0.3.0] - 2026-10-26
+
+Cette version reprend le contenu de la 0.2.3, publiée par erreur avec un numéro de correctif et retirée (`retract` dans `go.mod`).
 
 ### Ajouté
 
@@ -88,8 +90,8 @@ Première version publique.
 - Documentation en français dans `docs/` : prise en main, écrire un agent, personnalisation, langues, composants, architecture.
 - Documentation pour les assistants de code : skill `skills/ori-agent/SKILL.md`, `llms.txt`, `AGENTS.md`.
 
-[Non publié]: https://github.com/sitle/ori-agent/compare/v0.2.3...HEAD
-[0.2.3]: https://github.com/sitle/ori-agent/compare/v0.2.2...v0.2.3
+[Non publié]: https://github.com/sitle/ori-agent/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/sitle/ori-agent/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/sitle/ori-agent/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/sitle/ori-agent/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/sitle/ori-agent/compare/v0.1.0...v0.2.0

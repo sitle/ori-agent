@@ -2,6 +2,8 @@ module github.com/sitle/ori-agent
 
 go 1.26.0
 
+retract v0.2.3 // published by mistake as a patch release; same content as v0.3.0
+
 require (
 	gioui.org v0.8.0
 	github.com/klippa-app/go-pdfium v1.21.4
