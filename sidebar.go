@@ -59,6 +59,9 @@ func (a *App) layoutSidebar(gtx C) D {
 		}
 		// Custom pages, above the footer.
 		for i, p := range a.cfg.Pages {
+			if i > 0 {
+				children = append(children, ui.VSpace(2))
+			}
 			children = append(children, layout.Rigid(func(gtx C) D {
 				return th.NavRow(gtx, &a.pageBtns[i], th.Sidebar, a.view == p.ID, func(gtx C) D {
 					return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
@@ -75,6 +78,10 @@ func (a *App) layoutSidebar(gtx C) D {
 			}))
 		}
 		if !a.cfg.Disable.Profile || !a.cfg.Disable.Setup {
+			if len(a.cfg.Pages) > 0 {
+				// The pages keep the same gap above the line as the footer below it.
+				children = append(children, ui.VSpace(8))
+			}
 			children = append(children, layout.Rigid(th.HLine), ui.VSpace(8), layout.Rigid(a.sidebarFooter))
 		}
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)

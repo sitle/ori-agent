@@ -4,6 +4,13 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [0.5.1] - 2026-10-26
+
+### Corrigé
+
+- Barre latérale : les boutons des pages de l'application (`Config.Pages`) ne touchent plus le filet au-dessus du profil ; deux pages sont séparées d'un petit espace.
+- Captures de la documentation mises à jour.
+
 ## [0.5.0] - 2026-10-26
 
 ### Ajouté
@@ -110,7 +117,8 @@ Première version publique.
 - Documentation en français dans `docs/` : prise en main, écrire un agent, personnalisation, langues, composants, architecture.
 - Documentation pour les assistants de code : skill `skills/ori-agent/SKILL.md`, `llms.txt`, `AGENTS.md`.
 
-[Non publié]: https://github.com/sitle/ori-agent/compare/v0.5.0...HEAD
+[Non publié]: https://github.com/sitle/ori-agent/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/sitle/ori-agent/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/sitle/ori-agent/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/sitle/ori-agent/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/sitle/ori-agent/compare/v0.2.2...v0.3.0
