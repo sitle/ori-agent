@@ -5,6 +5,7 @@
 package main
 
 import (
+	"context"
 	_ "embed"
 	"flag"
 	"os"
@@ -115,6 +116,12 @@ func main() {
 		// The simulated agent's working modes, kept per project.
 		Modes:  sim.Modes,
 		OnMode: st.saveMode,
+
+		// "@" suggests the files of the session's folder (mentions.go).
+		Mentions: mentions,
+		// Going back to a message: the simulated agent never writes a file
+		// and keeps no record, so there is nothing to restore.
+		OnRewind: func(context.Context, *oriagent.Session, int) error { return nil },
 
 		// Word documents in the preview pane (convert.go).
 		Convert: convert,

@@ -160,6 +160,26 @@ OnMode: func(ctx context.Context, p *oriagent.Project, mode string) error {
 
 L'agent simulé fournit ses propres modes, `sim.Modes` : « Édition » (demande avant de modifier, selon les autorisations), « Plan » (un plan à valider, puis passage en Édition) et « Auto » (modifie sans demander). L'exemple Anna les utilise et garde le mode de chaque projet créé dans son `project.json` (`OnMode`).
 
+## Revenir à un message
+
+Avec `OnRewind`, chaque message de l'utilisateur montre « ↶ Revenir ici » au survol, hors tour en cours. Après confirmation, la fonction reçoit la session et le rang du message parmi ceux de l'utilisateur (0 pour le premier) ; l'application y rétablit son propre état (fichiers modifiés, historique de l'agent). Si elle réussit, le fil est coupé avant ce message et son texte revient dans la zone de saisie, prêt à être modifié ; sinon l'erreur s'affiche et rien ne change.
+
+```go
+OnRewind: func(ctx context.Context, s *oriagent.Session, n int) error {
+	return monAgent.Revenir(s.ID, n)
+},
+```
+
+Pendant le retour, aucun nouveau tour ne peut partir dans la session. Les sous-agents lancés après ce message disparaissent avec lui, et ses pièces jointes reviennent avec son texte. L'exemple Anna n'a rien à rétablir : son agent simulé n'écrit aucun fichier.
+
+## Mentionner un fichier
+
+Avec `Mentions`, taper « @ » suivi d'un mot dans la zone de saisie ouvre une liste de suggestions, au-dessus de la zone de saisie. La fonction est appelée une fois par requête (le mot après « @ ») et doit répondre vite ; elle rend au plus 8 `Mention` utiles : `Label` (le nom affiché), `Detail` (le dossier, en gris) et `Insert` (le texte inséré après « @ »). Flèches pour choisir, Tab ou Entrée pour insérer, Échap pour fermer. Une adresse comme `nom@exemple.pf` n'ouvre pas la liste. C'est à l'agent de lire ensuite les fichiers mentionnés dans le message. Échap ferme la liste sans toucher au texte ; elle se rouvre si l'on continue à taper. Le bouton Envoyer envoie le message tel qu'il est écrit.
+
+L'exemple Anna ([`examples/anna/mentions.go`](../examples/anna/mentions.go)) propose les fichiers du dossier de la session, sur trois niveaux, ceux dont le nom commence par la requête en premier.
+
+![La liste des fichiers proposés après « @ag »](images/mentions.png)
+
 ## Projets
 
 Un projet regroupe des sessions dans la barre latérale. En plus de son nom et de ses sessions, il peut avoir :

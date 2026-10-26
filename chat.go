@@ -59,6 +59,8 @@ func (a *App) composer(gtx C) D {
 			gtx.Constraints.Min.X = gtx.Constraints.Max.X
 			if _, open := a.paletteFilter(); open {
 				defer ui.OverlayAbove(gtx, 8, a.layoutPalette)
+			} else if _, open := a.mentions(); open {
+				defer ui.OverlayAbove(gtx, 8, a.layoutMentions)
 			}
 			return ui.Bordered(gtx, th.Surface, th.BorderHi, 14, func(gtx C) D {
 				return layout.Inset{Top: 12, Bottom: 10, Left: 14, Right: 10}.Layout(gtx, func(gtx C) D {
@@ -120,9 +122,12 @@ func (a *App) composer(gtx C) D {
 // sendButton turns into a stop button while the session is busy.
 func (a *App) sendButton(gtx C) D {
 	th := a.th
-	busy := a.cur.Busy
+	busy := a.cur.Busy && !a.canQueue()
 	return a.send.Layout(gtx, func(gtx C) D {
 		bg, txt, fg := th.Accent, a.t("composer.send"), th.OnAccent
+		if a.cur.Busy && !busy {
+			txt = a.t("composer.add") // sent to the running turn
+		}
 		switch {
 		case busy:
 			bg, txt, fg = th.Selected, a.t("composer.stop"), th.Text
@@ -153,25 +158,7 @@ func (a *App) message(gtx C, m *Message) D {
 	switch m.Kind {
 	case KindUser:
 		gtx.Constraints.Min.X = gtx.Constraints.Max.X
-		return layout.Flex{Axis: layout.Vertical, Alignment: layout.End}.Layout(gtx,
-			layout.Rigid(func(gtx C) D {
-				if m.Text == "" {
-					return D{}
-				}
-				return layout.E.Layout(gtx, func(gtx C) D {
-					gtx.Constraints.Max.X = gtx.Constraints.Max.X * 4 / 5
-					return ui.Card(gtx, th.UserBubble, 14, layout.Inset{Top: 10, Bottom: 10, Left: 14, Right: 14}, th.Body(15, m.Text))
-				})
-			}),
-			layout.Rigid(func(gtx C) D {
-				if len(m.Attachments) == 0 {
-					return D{}
-				}
-				return layout.Inset{Top: 6}.Layout(gtx, func(gtx C) D {
-					return layout.E.Layout(gtx, func(gtx C) D { return a.attachmentFlow(gtx, m.Attachments, false) })
-				})
-			}),
-		)
+		return m.rewind.hover.Layout(gtx, func(gtx C) D { return a.userMessage(gtx, m) })
 	case KindAssistant:
 		return th.Markdown(15, m.Text)(gtx)
 	case KindThinking:

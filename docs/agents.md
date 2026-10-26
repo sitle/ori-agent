@@ -137,6 +137,20 @@ d, err := t.Approve(ctx, oriagent.ApprovalRequest{
 
 `t.Mode` est le mode choisi dans le badge de la zone de saisie au début du tour (voir « Modes de travail » dans la personnalisation) ; `t.SetMode(id)` le change, pour le badge et les tours suivants. `t.SetContext(utilises, fenetre)` remplit la jauge de contexte de la zone de saisie, en jetons : l'agent l'appelle après chaque réponse du modèle ; une fenêtre de 0 masque la jauge. L'application restaure la jauge avec la session (`Session.ContextUsed`, `ContextWindow`).
 
+### Les messages envoyés pendant le tour
+
+Pendant que l'agent travaille, l'utilisateur peut écrire : son message s'affiche « En attente ». `t.TakeMessages()` rend ces messages (texte et pièces jointes) et les marque comme transmis ; l'agent l'appelle typiquement avant chaque nouvel appel au modèle, et les ajoute à la conversation. Ceux qu'il ne prend pas lancent un nouveau tour quand le sien se termine ; un sous-agent n'en reçoit pas.
+
+```go
+for _, q := range t.TakeMessages() {
+	conversation = append(conversation, messageUtilisateur(q.Text, q.Attachments))
+}
+```
+
+Si l'utilisateur arrête le tour, ses messages en attente reviennent dans la zone de saisie, pièces jointes comprises. L'agent simulé (`sim`) les prend avant sa réponse finale.
+
+![Un message envoyé pendant le tour, en attente](images/message-en-attente.png)
+
 ### Mettre à jour le profil et les modèles
 
 Un tour de connexion (lancé par une commande `/login` avec `c.RunTurn`) peut remplacer ce qui a été fixé au démarrage :
@@ -251,7 +265,7 @@ for _, m := range s.Messages {
 }
 ```
 
-`Approve` répond aux demandes d'approbation de l'agent, dans la goroutine de l'agent ; une demande reste visible dans le fil avec sa réponse. Un second `Run` dans une session encore occupée renvoie `ErrSessionBusy`. Le test [`sim/sim_test.go`](../sim/sim_test.go) teste ainsi l'agent simulé.
+`Approve` répond aux demandes d'approbation de l'agent, dans la goroutine de l'agent ; une demande reste visible dans le fil avec sa réponse. Un second `Run` dans une session encore occupée renvoie `ErrSessionBusy`. `h.Send(s, texte)` ajoute un message pendant le tour, comme si l'utilisateur l'écrivait ; s'il n'est pas pris par `TakeMessages` avant la fin du tour, il est retiré du fil. Le test [`sim/sim_test.go`](../sim/sim_test.go) teste ainsi l'agent simulé.
 
 ## S'inspirer de l'agent simulé
 

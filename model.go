@@ -59,8 +59,12 @@ type Message struct {
 	approval *approval
 
 	Attachments []*Attachment
+	// Queued marks a message the user sent while a turn was running, not yet
+	// given to the agent (Turn.TakeMessages).
+	Queued bool
 
 	toggle, toggleTail, open widget.Clickable
+	rewind                   rewindState
 }
 
 // Session is a conversation; Children are the subagents it spawned.
@@ -77,6 +81,9 @@ type Session struct {
 	// ContextUsed and ContextWindow fill the context gauge of the composer
 	// (Turn.SetContext); applications restore them with the session.
 	ContextUsed, ContextWindow int
+
+	pending   []*Message // sent during the running turn, see interject.go
+	rewinding bool       // Config.OnRewind is running: no new turn
 
 	project *Project
 	parent  *Session

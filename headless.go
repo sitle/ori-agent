@@ -77,8 +77,26 @@ func (h *Headless) Run(ctx context.Context, s *Session, prompt string, atts []*A
 	a.update(func() {
 		s.Busy = false
 		t.closeOpen()
+		for _, m := range s.pending { // not taken: left out
+			s.remove(m)
+		}
+		s.pending = nil
 	})
 	return s, err
+}
+
+// Send adds a message of the user to the turn running in s, as when the
+// user writes during a turn (Turn.TakeMessages). It reports false when no
+// turn is running; a message the agent does not take before the end of
+// its turn is left out of the transcript.
+func (h *Headless) Send(s *Session, text string, atts ...*Attachment) bool {
+	ok := false
+	h.app.update(func() {
+		if ok = s.Busy; ok {
+			h.app.queue(s, text, atts)
+		}
+	})
+	return ok
 }
 
 // approve answers req at once, for a headless turn. Called without the

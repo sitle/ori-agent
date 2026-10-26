@@ -47,6 +47,7 @@ var Translations = map[string]map[string]string{
 		"sim.plan.run":       "Exécuter le plan",
 		"sim.plan.keep":      "Continuer à planifier",
 		"sim.plan.kept":      "D'accord, je reste en mode plan : rien n'est modifié.",
+		"sim.queued":         "J'ai bien reçu votre message pendant le travail : « %s ». Je le prends en compte.",
 
 		"sim.att.think": "L'utilisateur a joint %d fichier(s) : %s. Je lis chacun avant de répondre, " +
 			"puis je résume leur contenu. C'est une simulation : le résumé reste générique.",
@@ -111,6 +112,7 @@ var Translations = map[string]map[string]string{
 		"sim.plan.run":       "Run the plan",
 		"sim.plan.keep":      "Keep planning",
 		"sim.plan.kept":      "All right, I'll stay in plan mode: nothing is changed.",
+		"sim.queued":         "I got your message during the work: \"%s\". I'm taking it into account.",
 
 		"sim.att.think": "The user attached %d file(s): %s. I'll read each one before answering, " +
 			"then summarize what they contain. This is a simulation, so the summary stays generic.",

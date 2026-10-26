@@ -176,8 +176,18 @@ type Config struct {
 	// Modes turn the composer chip into a menu of working modes, kept per
 	// project (Project.Mode); OnMode keeps the user's choice (p nil: the
 	// sessions out of projects). An error puts the previous mode back.
-	Modes         []Mode
-	OnMode        func(ctx context.Context, p *Project, mode string) error
+	Modes  []Mode
+	OnMode func(ctx context.Context, p *Project, mode string) error
+
+	// OnRewind brings the session back to the state before its n-th user
+	// message (0 for the first): the application restores its files and its
+	// own record; then the transcript is cut there and the message's text
+	// returns to the composer. Nil: no "Go back here" action.
+	OnRewind func(ctx context.Context, s *Session, n int) error
+	// Mentions suggests what "@query" in the composer may refer to, files
+	// most often; called on the UI goroutine when the query changes, so it
+	// must answer quickly. Nil: no suggestions.
+	Mentions      func(s *Session, query string) []Mention
 	EmptyTitle    string // empty session
 	EmptySubtitle string // default: the working directory
 

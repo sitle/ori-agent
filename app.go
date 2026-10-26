@@ -42,6 +42,7 @@ type App struct {
 	focus    bool
 	toast    ui.Toast
 	modes    modeState
+	mention  mentionState
 
 	// chat
 	editor     widget.Editor
@@ -275,6 +276,7 @@ func (a *App) setDark(dark bool) { a.th.SetDark(dark) }
 
 func (a *App) frame(gtx C) {
 	a.handlePalette(gtx)
+	a.handleMentions(gtx)
 	for {
 		ev, ok := a.editor.Update(gtx)
 		if !ok {
@@ -285,9 +287,10 @@ func (a *App) frame(gtx C) {
 		}
 	}
 	if a.send.Clicked(gtx) {
-		if a.cur.Busy && a.cur.cancel != nil {
+		if a.cur.Busy && a.cur.cancel != nil && !a.canQueue() {
 			a.cur.cancel() // the send button is a stop button while busy
 		} else {
+			a.dismissMention() // the button sends what is written
 			a.onSubmit()
 		}
 	}
@@ -441,7 +444,7 @@ func (a *App) viewTitle() string {
 
 // onSubmit routes Enter: palette pick, slash command, or a chat message.
 func (a *App) onSubmit() {
-	if a.submitPalette() {
+	if a.submitPalette() || a.submitMention() {
 		return
 	}
 	if t := strings.TrimSpace(a.editor.Text()); strings.HasPrefix(t, "/") {
@@ -452,7 +455,7 @@ func (a *App) onSubmit() {
 	s := a.cur
 	txt := strings.TrimSpace(a.editor.Text())
 	atts := a.attachments
-	if (txt == "" && len(atts) == 0) || s.Busy {
+	if (txt == "" && len(atts) == 0) || (s.Busy && !a.canQueue()) || s.rewinding {
 		return
 	}
 	for _, t := range atts {
@@ -463,6 +466,11 @@ func (a *App) onSubmit() {
 	}
 	a.editor.SetText("")
 	a.attachments = nil
+	if s.Busy {
+		// Sent while the agent works: given to it at its next step.
+		a.queue(s, txt, atts)
+		return
+	}
 	if len(s.Messages) == 0 {
 		title := txt
 		if title == "" {
@@ -471,6 +479,13 @@ func (a *App) onSubmit() {
 		s.Title = truncate(title, 40)
 	}
 	a.startTurn(s, txt, atts, a.cfg.Agent.Run)
+}
+
+// canQueue reports whether what the composer holds can be sent to the
+// running turn of the session shown (not a subagent's).
+func (a *App) canQueue() bool {
+	s := a.cur
+	return s.Busy && s.parent == nil && (strings.TrimSpace(a.editor.Text()) != "" || len(a.attachments) > 0)
 }
 
 func (a *App) newSession() {

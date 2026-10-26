@@ -204,6 +204,17 @@ func (s *Agent) Run(ctx context.Context, t *oriagent.Turn) error {
 			return err
 		}
 	}
+	// What the user wrote meanwhile is taken before the answer, as a real
+	// agent would before its next model call.
+	if q := t.TakeMessages(); len(q) > 0 {
+		texts := make([]string, len(q))
+		for i, m := range q {
+			texts[i] = m.Text
+		}
+		if err := say(ctx, t, tr(t, "sim.queued", strings.Join(texts, " / "))); err != nil {
+			return err
+		}
+	}
 	err := say(ctx, t, tr(t, "sim.done", t.WorkDir, t.Prompt, len(entries), dirs, len(entries)-dirs))
 	tasks.Set(2, oriagent.TaskDone)
 	return err

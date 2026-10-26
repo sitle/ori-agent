@@ -4,6 +4,20 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [0.7.0] - 2026-10-26
+
+### Ajouté
+
+- Message pendant un tour : la zone de saisie reste utilisable pendant que l'agent travaille ; le bouton d'envoi devient « Ajouter » et le message s'affiche aussitôt, marqué « En attente ». L'agent le reçoit à sa prochaine étape avec `Turn.TakeMessages()` (`QueuedMessage{Text, Attachments}`) ; s'il ne le prend pas, un nouveau tour part à la fin du sien ; « Arrêter » remet le texte en attente dans la zone de saisie. `Headless.Send` fait de même sans fenêtre.
+- Retour à un message : `Config.OnRewind(ctx, session, n)` ajoute « ↶ Revenir ici » au survol des messages de l'utilisateur, avec une confirmation ; l'application rétablit son état d'avant le n-ième message (0 pour le premier), puis le fil est coupé à ce message et son texte revient dans la zone de saisie. Une erreur s'affiche et laisse le fil tel quel.
+- Mention de fichiers : `Config.Mentions(session, requête)` ouvre, à la frappe de « @mot », une liste de suggestions (`Mention{Label, Detail, Insert}`, 8 au plus) ; flèches pour choisir, Tab ou Entrée pour insérer « @chemin », Échap pour fermer.
+- Exemple Anna : « @ » propose les fichiers du dossier de la session, le retour à un message est actif, et l'agent simulé prend les messages envoyés pendant son tour avant de répondre.
+- Captures de la liste « @ » et d'un message en attente dans la documentation ; captures mises à jour.
+- Un message en attente qui part comme nouveau tour en est le texte et ne figure pas en plus dans l'historique transmis à l'agent.
+- « Arrêter » remet aussi les pièces jointes en attente dans la zone de saisie, après ce qu'elle contient déjà ; si une autre session est affichée, les messages restent dans le fil.
+- Pendant un retour à un message, aucun tour ne peut partir dans la session ; les sous-agents lancés après le message sont retirés, et ses pièces jointes reviennent avec son texte.
+- Échap ferme la liste « @ » sans modifier le texte, et le bouton Envoyer envoie le message au lieu d'insérer une suggestion.
+
 ## [0.6.0] - 2026-10-26
 
 ### Ajouté
@@ -127,7 +141,8 @@ Première version publique.
 - Documentation en français dans `docs/` : prise en main, écrire un agent, personnalisation, langues, composants, architecture.
 - Documentation pour les assistants de code : skill `skills/ori-agent/SKILL.md`, `llms.txt`, `AGENTS.md`.
 
-[Non publié]: https://github.com/sitle/ori-agent/compare/v0.6.0...HEAD
+[Non publié]: https://github.com/sitle/ori-agent/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/sitle/ori-agent/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/sitle/ori-agent/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/sitle/ori-agent/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/sitle/ori-agent/compare/v0.4.0...v0.5.0

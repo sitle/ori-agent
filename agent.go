@@ -3,6 +3,7 @@ package oriagent
 import (
 	"context"
 	"errors"
+	"slices"
 	"time"
 )
 
@@ -239,10 +240,13 @@ func (t *Turn) closeOpen() {
 // TurnFunc runs a turn; commands use it to start custom turns.
 type TurnFunc func(ctx context.Context, t *Turn) error
 
-// history is what the agent is given of s's earlier exchanges.
-func (s *Session) history() []HistoryEntry {
+// history is what the agent is given of s's earlier exchanges, but skip.
+func (s *Session) history(skip ...*Message) []HistoryEntry {
 	var hist []HistoryEntry
 	for _, m := range s.Messages {
+		if slices.Contains(skip, m) {
+			continue
+		}
 		switch m.Kind {
 		case KindUser:
 			hist = append(hist, HistoryEntry{Role: "user", Text: m.Text})
@@ -255,11 +259,18 @@ func (s *Session) history() []HistoryEntry {
 
 // startTurn runs fn for session s. Called with the lock held.
 func (a *App) startTurn(s *Session, prompt string, atts []*Attachment, fn TurnFunc) bool {
-	if s.Busy {
+	return a.runTurn(s, prompt, atts, fn, nil)
+}
+
+// runTurn is startTurn; with sent, the prompt is already in the transcript
+// as these messages (sent during the previous turn), which the history
+// leaves out since they are the prompt.
+func (a *App) runTurn(s *Session, prompt string, atts []*Attachment, fn TurnFunc, sent []*Message) bool {
+	if s.Busy || s.rewinding {
 		return false
 	}
-	hist := s.history()
-	if prompt != "" || len(atts) > 0 {
+	hist := s.history(sent...)
+	if sent == nil && (prompt != "" || len(atts) > 0) {
 		s.add(UserMsg(prompt, atts...))
 	}
 	ctx, cancel := context.WithCancel(context.Background())
@@ -280,6 +291,7 @@ func (a *App) startTurn(s *Session, prompt string, atts []*Attachment, fn TurnFu
 			case err != nil && !errors.Is(err, context.Canceled):
 				s.add(&Message{Kind: KindNotice, Text: err.Error(), Error: true})
 			}
+			a.afterTurn(s, canceled, a.cfg.Agent.Run)
 		})
 	}()
 	return true
