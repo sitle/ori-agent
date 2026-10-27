@@ -114,6 +114,10 @@ func main() {
 		OnDeleteProject: st.deleteProject,
 		ProjectFiles:    st.projectFiles,
 
+		// Deleting a session, with what it takes away (store.go).
+		OnDeleteSession:   st.deleteSession,
+		DeleteSessionInfo: st.deleteInfo,
+
 		// The simulated agent's working modes, kept per project.
 		Modes:  sim.Modes,
 		OnMode: st.saveMode,

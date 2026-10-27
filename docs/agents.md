@@ -137,6 +137,10 @@ d, err := t.Approve(ctx, oriagent.ApprovalRequest{
 
 `t.Mode` est le mode choisi dans le badge de la zone de saisie au début du tour (voir « Modes de travail » dans la personnalisation) ; `t.SetMode(id)` le change, pour le badge et les tours suivants. `t.SetContext(utilises, fenetre)` remplit la jauge de contexte de la zone de saisie, en jetons : l'agent l'appelle après chaque réponse du modèle ; une fenêtre de 0 masque la jauge. L'application restaure la jauge avec la session (`Session.ContextUsed`, `ContextWindow`).
 
+### Quand rien ne s'écrit
+
+Tant que le tour tourne sans que rien ne bouge (aucun bloc de texte ou de réflexion ouvert, aucun outil en cours, aucune approbation en attente), le fil montre « <AppName> réfléchit… », avec le temps écoulé. L'agent n'a rien à faire pour cela ; ouvrir un bloc ou un appel d'outil remplace cette ligne.
+
 ### Les messages envoyés pendant le tour
 
 Pendant que l'agent travaille, l'utilisateur peut écrire : son message s'affiche « En attente ». `t.TakeMessages()` rend ces messages (texte et pièces jointes) et les marque comme transmis ; l'agent l'appelle typiquement avant chaque nouvel appel au modèle, et les ajoute à la conversation. Ceux qu'il ne prend pas lancent un nouveau tour quand le sien se termine ; un sous-agent n'en reçoit pas.

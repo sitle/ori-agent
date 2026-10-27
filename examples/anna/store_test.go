@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	oriagent "github.com/sitle/ori-agent"
@@ -99,6 +100,20 @@ func TestStoreKeepsForeignFolders(t *testing.T) {
 	}
 	if _, err := os.Stat(keep); err != nil {
 		t.Error("a foreign folder was touched")
+	}
+}
+
+func TestDeleteInfo(t *testing.T) {
+	s := newStore(t.TempDir())
+	ss := &oriagent.Session{Title: "Note", Messages: []*oriagent.Message{oriagent.UserMsg("Bonjour"), oriagent.TextMsg("Bonjour !")}}
+	ss.Spawn("Recherche")
+	s.setLocale("fr")
+	if got := s.deleteInfo(ss); !strings.HasPrefix(got, "Messages retirés : 2. Sous-agents retirés : 1.") {
+		t.Errorf("fr: %q", got)
+	}
+	s.setLocale("en")
+	if got := s.deleteInfo(ss); !strings.HasPrefix(got, "Messages removed: 2.") {
+		t.Errorf("en: %q", got)
 	}
 }
 

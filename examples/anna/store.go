@@ -35,8 +35,10 @@ type projectMeta struct {
 
 func newStore(dir string) *store {
 	tr := i18n.New("fr")
-	for l, c := range oriagent.Catalogs {
-		tr.Add(l, c)
+	for _, set := range []map[string]map[string]string{oriagent.Catalogs, translations} {
+		for l, c := range set {
+			tr.Add(l, c)
+		}
 	}
 	return &store{dir: dir, tr: tr}
 }
@@ -201,6 +203,25 @@ func (s *store) deleteProject(ctx context.Context, p *oriagent.Project) error {
 		return os.RemoveAll(p.WorkDir)
 	}
 	return nil
+}
+
+// deleteSession is Config.OnDeleteSession: Anna keeps no file of its
+// sessions, so it only takes its time; a real application deletes its
+// records and files here.
+func (s *store) deleteSession(ctx context.Context, _ *oriagent.Session) error {
+	return pause(ctx, 400)
+}
+
+// deleteInfo is Config.DeleteSessionInfo: what the deletion takes away,
+// in the interface language.
+func (s *store) deleteInfo(ss *oriagent.Session) string {
+	msgs := 0
+	for _, m := range ss.Messages {
+		if m.Kind == oriagent.KindUser || m.Kind == oriagent.KindAssistant {
+			msgs++
+		}
+	}
+	return s.tr.T("delete.info", msgs, len(ss.Children))
 }
 
 // projectFiles is Config.ProjectFiles: the files at the top of the project's

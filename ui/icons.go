@@ -43,6 +43,30 @@ func SmallChevron(gtx C, c color.NRGBA, dir int) D {
 	return Chevron(gtx, c, dir)
 }
 
+// Trash is a bin: a lid with its handle over a body with two ribs.
+func Trash(gtx C, c color.NRGBA) D {
+	w, h := float32(gtx.Dp(11)), float32(gtx.Dp(12))
+	lw := float32(gtx.Dp(1.3))
+	var p clip.Path
+	p.Begin(gtx.Ops)
+	p.MoveTo(f32.Pt(0, h*0.2)) // lid
+	p.LineTo(f32.Pt(w, h*0.2))
+	p.MoveTo(f32.Pt(w*0.35, h*0.2)) // handle
+	p.LineTo(f32.Pt(w*0.35, 0))
+	p.LineTo(f32.Pt(w*0.65, 0))
+	p.LineTo(f32.Pt(w*0.65, h*0.2))
+	p.MoveTo(f32.Pt(w*0.12, h*0.2)) // body
+	p.LineTo(f32.Pt(w*0.2, h))
+	p.LineTo(f32.Pt(w*0.8, h))
+	p.LineTo(f32.Pt(w*0.88, h*0.2))
+	p.MoveTo(f32.Pt(w*0.4, h*0.4)) // ribs
+	p.LineTo(f32.Pt(w*0.4, h*0.8))
+	p.MoveTo(f32.Pt(w*0.6, h*0.4))
+	p.LineTo(f32.Pt(w*0.6, h*0.8))
+	paint.FillShape(gtx.Ops, c, clip.Stroke{Path: p.End(), Width: lw}.Op())
+	return D{Size: image.Pt(int(w+0.5), int(h+0.5))}
+}
+
 func Close(gtx C, c color.NRGBA) D {
 	s := float32(gtx.Dp(10))
 	var p clip.Path

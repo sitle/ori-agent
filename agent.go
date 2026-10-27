@@ -266,7 +266,7 @@ func (a *App) startTurn(s *Session, prompt string, atts []*Attachment, fn TurnFu
 // as these messages (sent during the previous turn), which the history
 // leaves out since they are the prompt.
 func (a *App) runTurn(s *Session, prompt string, atts []*Attachment, fn TurnFunc, sent []*Message) bool {
-	if s.Busy || s.rewinding {
+	if s.Busy || a.locked(s) {
 		return false
 	}
 	hist := s.history(sent...)

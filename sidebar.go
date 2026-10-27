@@ -168,6 +168,9 @@ func (a *App) handleTree(gtx C) {
 		if s.chev.Clicked(gtx) {
 			s.Open = !s.Open
 		}
+		if s.delBtn.Clicked(gtx) {
+			a.askDelete(s)
+		}
 	})
 }
 
@@ -331,6 +334,19 @@ func (a *App) sessionCard(gtx C, s *Session) D {
 						return D{}
 					}
 					return layout.Inset{Left: 8}.Layout(gtx, func(gtx C) D { return ui.Dot(gtx, ui.Pulse(gtx, th.Muted), 7) })
+				}),
+				layout.Rigid(func(gtx C) D {
+					// Delete, on hover of a session (not a subagent's) that is not running.
+					if a.cfg.OnDeleteSession == nil || s.parent != nil || s.Busy || !s.btn.Hovered() && !s.delBtn.Hovered() {
+						return D{}
+					}
+					return s.delBtn.Layout(gtx, func(gtx C) D {
+						c := th.Muted
+						if s.delBtn.Hovered() {
+							c = th.Danger
+						}
+						return layout.Inset{Left: 6}.Layout(gtx, func(gtx C) D { return ui.Trash(gtx, c) })
+					})
 				}),
 			)
 		})

@@ -269,3 +269,105 @@ func TestPanels(t *testing.T) {
 		t.Fatal("closed by an empty preview")
 	}
 }
+
+// While a turn runs with nothing moving, a line says the agent thinks; it
+// goes away as soon as text streams or a question waits for the user.
+func TestWorkingLine(t *testing.T) {
+	a, s := sessionApp(t, Config{Agent: AgentFunc(func(context.Context, *Turn) error { return nil })})
+	gtx := layout.Context{Ops: new(op.Ops), Now: time.Now()}
+	s.add(UserMsg("Bonjour"))
+	if a.working(gtx, s) {
+		t.Fatal("idle session")
+	}
+	s.Busy = true
+	if !a.working(gtx, s) || s.waitSince.IsZero() {
+		t.Fatal("no line while the model reads the request")
+	}
+	m := &Message{Kind: KindAssistant, Running: true}
+	s.add(m)
+	if a.working(gtx, s) || !s.waitSince.IsZero() {
+		t.Fatal("line while text streams")
+	}
+	m.Running = false
+	s.add(&Message{Kind: KindApproval, approval: &approval{}})
+	if a.working(gtx, s) {
+		t.Fatal("line while a question waits")
+	}
+}
+
+// Deleting asks for confirmation, has the application delete the session,
+// then takes it out of the sidebar; a refusal keeps it (OnDeleteSession).
+func TestDeleteSession(t *testing.T) {
+	var deleted []string
+	refuse := false
+	a, s := sessionApp(t, Config{Agent: AgentFunc(func(context.Context, *Turn) error { return nil }),
+		OnDeleteSession: func(_ context.Context, s *Session) error {
+			if refuse {
+				return errors.New("fichier ouvert")
+			}
+			deleted = append(deleted, s.ID)
+			return nil
+		},
+		DeleteSessionInfo: func(s *Session) string { return "Le dossier sera supprimé." }})
+	other := &Session{ID: NewSessionID(), Title: "Autre"}
+	s.project.Add(other)
+	s.Title = "Note"
+	a.projects = []*Project{s.project}
+
+	a.mu.Lock()
+	a.askDelete(s)
+	if a.del.s != s || a.del.info != "Le dossier sera supprimé." {
+		t.Fatalf("dialog %+v", a.del)
+	}
+	refuse = true
+	a.confirmDelete()
+	a.mu.Unlock()
+	waitUntil(t, a, func() bool { return a.del.s == nil })
+	if len(s.project.Sessions) != 2 {
+		t.Fatal("refused deletion removed the session")
+	}
+
+	refuse = false
+	a.mu.Lock()
+	a.askDelete(s)
+	a.confirmDelete()
+	a.mu.Unlock()
+	waitUntil(t, a, func() bool { return a.del.s == nil })
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if len(deleted) != 1 || len(s.project.Sessions) != 1 || a.cur != other {
+		t.Fatalf("deleted %v, %d sessions, current %v", deleted, len(s.project.Sessions), a.cur.Title)
+	}
+	other.Busy = true
+	a.askDelete(other)
+	if a.del.s != nil {
+		t.Fatal("a running session can be deleted")
+	}
+}
+
+// No turn starts in a session while it is being deleted, and a turn
+// started behind the dialog cancels the deletion.
+func TestDeleteLocksSession(t *testing.T) {
+	release := make(chan struct{})
+	a, s := sessionApp(t, Config{Agent: AgentFunc(func(context.Context, *Turn) error { return nil }),
+		OnDeleteSession: func(context.Context, *Session) error { <-release; return nil }})
+	a.projects = []*Project{s.project}
+
+	a.mu.Lock()
+	a.askDelete(s)
+	s.Busy = true // a turn started while the dialog was open
+	a.confirmDelete()
+	if a.del.s != nil || a.del.running {
+		t.Fatal("a busy session went to deletion")
+	}
+	s.Busy = false
+	a.askDelete(s)
+	a.confirmDelete()
+	started := a.startTurn(s, "encore", nil, a.cfg.Agent.Run)
+	a.mu.Unlock()
+	close(release)
+	if started {
+		t.Fatal("a turn started in a session being deleted")
+	}
+	waitUntil(t, a, func() bool { return a.del.s == nil })
+}

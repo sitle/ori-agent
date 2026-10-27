@@ -182,6 +182,27 @@ L'exemple Anna ([`examples/anna/supervision.go`](../examples/anna/supervision.go
 
 ![Le panneau Supervision pendant un tour](images/supervision.png)
 
+## Supprimer une session
+
+Sans `OnDeleteSession`, une session peut seulement être archivée (retirée de la barre latérale). Avec, le menu de la session propose « Supprimer la session… » et une corbeille apparaît au survol de la session dans la barre latérale ; une boîte demande confirmation, avec ce que l'application dit qu'elle perdra (`DeleteSessionInfo`).
+
+```go
+OnDeleteSession: func(ctx context.Context, s *oriagent.Session) error {
+	return monAgent.Supprimer(s.ID) // dossier, historique…
+},
+DeleteSessionInfo: func(s *oriagent.Session) string {
+	return "Le dossier " + dossierDe(s) + " sera supprimé."
+},
+```
+
+- La suppression tourne dans une goroutine ; si elle échoue, l'erreur s'affiche et la session reste.
+- Une session dont un tour tourne, ou celle d'un sous-agent, ne propose pas la suppression.
+- Pendant la suppression, aucun tour ne peut partir dans la session ; si un tour a démarré derrière la boîte (Entrée dans la zone de saisie), la confirmation est refusée.
+
+L'exemple Anna ([`examples/anna/store.go`](../examples/anna/store.go)) ne garde aucun fichier de session : sa suppression ne fait que prendre un peu de temps, et `DeleteSessionInfo` dit, dans la langue de l'interface, combien de messages et de sous-agents seront retirés.
+
+![La confirmation de suppression d'une session](images/suppression.png)
+
 ## Revenir à un message
 
 Avec `OnRewind`, chaque message de l'utilisateur montre « ↶ Revenir ici » au survol, hors tour en cours. Après confirmation, la fonction reçoit la session et le rang du message parmi ceux de l'utilisateur (0 pour le premier) ; l'application y rétablit son propre état (fichiers modifiés, historique de l'agent). Si elle réussit, le fil est coupé avant ce message et son texte revient dans la zone de saisie, prêt à être modifié ; sinon l'erreur s'affiche et rien ne change.

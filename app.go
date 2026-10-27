@@ -44,6 +44,7 @@ type App struct {
 	modes    modeState
 	mention  mentionState
 	panels   panelState
+	del      deleteState
 
 	// chat
 	editor     widget.Editor
@@ -63,7 +64,7 @@ type App struct {
 	pageLists            map[string]*widget.List
 	titleBtn, menuScrim  widget.Clickable
 	menuOpen             bool
-	menuItems            [5]widget.Clickable
+	menuItems            [6]widget.Clickable
 	renaming, renameSeen bool
 	renameFrames         int
 	renameEd             widget.Editor
@@ -279,6 +280,7 @@ func (a *App) frame(gtx C) {
 	a.handlePalette(gtx)
 	a.handleMentions(gtx)
 	a.handlePanels(gtx)
+	a.handleDelete(gtx)
 	for {
 		ev, ok := a.editor.Update(gtx)
 		if !ok {
@@ -359,6 +361,7 @@ func (a *App) frame(gtx C) {
 		layout.Rigid(a.titleBar),
 		layout.Flexed(1, a.layoutBody),
 	)
+	a.layoutDelete(gtx)
 	a.toast.Layout(gtx, a.th)
 	a.checkSettings()
 }
@@ -473,7 +476,7 @@ func (a *App) onSubmit() {
 	s := a.cur
 	txt := strings.TrimSpace(a.editor.Text())
 	atts := a.attachments
-	if (txt == "" && len(atts) == 0) || (s.Busy && !a.canQueue()) || s.rewinding {
+	if (txt == "" && len(atts) == 0) || (s.Busy && !a.canQueue()) || a.locked(s) {
 		return
 	}
 	for _, t := range atts {

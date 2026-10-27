@@ -4,6 +4,15 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [0.9.0] - 2026-10-27
+
+### Ajouté
+
+- Suppression des sessions : avec `Config.OnDeleteSession`, le menu de la session propose « Supprimer la session… » et une corbeille apparaît au survol d'une session dans la barre latérale (pas pour les sous-agents ni pendant un tour). Une boîte de confirmation montre `Config.DeleteSessionInfo` (ce qui sera perdu) et rappelle que la suppression est définitive ; l'application supprime dans une goroutine, puis la session quitte la barre latérale, ou l'erreur s'affiche. Aucun tour ne peut partir dans la session pendant la suppression, et un tour démarré derrière la boîte annule la confirmation. Icône `ui.Trash`.
+- Indication d'attente dans le fil : tant qu'un tour tourne sans que rien ne bouge à l'écran (ni texte ni réflexion en cours d'écriture, ni outil en cours, ni question posée à l'utilisateur), une ligne « <AppName> réfléchit… » clignote à la fin du fil, avec le temps écoulé au-delà de 3 secondes. Le modèle lit alors la demande, ou réfléchit sans le montrer.
+- Exemple Anna : suppression des sessions, avec le nombre de messages et de sous-agents retirés dans la langue de l'interface.
+- Capture de la confirmation de suppression dans la documentation.
+
 ## [0.8.0] - 2026-10-26
 
 ### Ajouté
@@ -158,7 +167,8 @@ Première version publique.
 - Documentation en français dans `docs/` : prise en main, écrire un agent, personnalisation, langues, composants, architecture.
 - Documentation pour les assistants de code : skill `skills/ori-agent/SKILL.md`, `llms.txt`, `AGENTS.md`.
 
-[Non publié]: https://github.com/sitle/ori-agent/compare/v0.8.0...HEAD
+[Non publié]: https://github.com/sitle/ori-agent/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/sitle/ori-agent/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/sitle/ori-agent/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/sitle/ori-agent/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/sitle/ori-agent/compare/v0.5.1...v0.6.0

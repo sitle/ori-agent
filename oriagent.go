@@ -157,6 +157,13 @@ type Config struct {
 	// OnDeleteProject the page has no remove button.
 	OnUpdateProject func(ctx context.Context, p *Project, edit ProjectEdit) (ProjectEdit, error)
 	OnDeleteProject func(ctx context.Context, p *Project) error
+	// OnDeleteSession deletes a session for good (its records, its files…),
+	// after the user confirmed in a dialog; it runs on a goroutine of its
+	// own, and the session leaves the sidebar if it succeeds. nil: sessions
+	// can only be archived. DeleteSessionInfo, optional, says in the dialog
+	// what will be lost; it is called when the dialog opens.
+	OnDeleteSession   func(ctx context.Context, s *Session) error
+	DeleteSessionInfo func(s *Session) string
 	// ProjectFiles lists the files shown in a Files section of a project's
 	// page, such as the files attached in its sessions; nil hides the
 	// section. It is called on a goroutine of its own when the page opens.

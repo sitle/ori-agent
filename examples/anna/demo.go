@@ -175,6 +175,7 @@ var translations = map[string]map[string]string{
 		"login.tool":         "Authentification réussie.",
 		"login.role":         "Responsable de projet (compte vérifié)",
 		"login.done":         "Connexion simulée : le profil vient de l'annuaire et un modèle réservé est disponible dans la Configuration.",
+		"delete.info":        "Messages retirés : %d. Sous-agents retirés : %d. Anna ne garde aucun fichier de session : rien d'autre n'est effacé.",
 	},
 	"en": {
 		"model.opus":         "The most capable, for complex and long tasks.",
@@ -196,6 +197,7 @@ var translations = map[string]map[string]string{
 		"login.tool":         "Authentication succeeded.",
 		"login.role":         "Project manager (verified account)",
 		"login.done":         "Simulated sign-in: the profile now comes from the directory and a reserved model is available in the settings.",
+		"delete.info":        "Messages removed: %d. Subagents removed: %d. Anna keeps no session files: nothing else is erased.",
 	},
 }
 

@@ -1,8 +1,10 @@
 package oriagent
 
 import (
+	"fmt"
 	"image"
 	"path/filepath"
+	"time"
 
 	"gioui.org/font"
 	"gioui.org/layout"
@@ -21,17 +23,61 @@ func (a *App) layoutChat(gtx C) D {
 			if len(s.Messages) == 0 {
 				return a.emptyState(gtx)
 			}
-			return material.List(a.th.Material, &a.transcript).Layout(gtx, len(s.Messages), func(gtx C, i int) D {
+			n := len(s.Messages)
+			if a.working(gtx, s) {
+				n++ // the "thinking" line, after the messages
+			}
+			return material.List(a.th.Material, &a.transcript).Layout(gtx, n, func(gtx C, i int) D {
 				return ui.Centered(gtx, chatWidth, func(gtx C) D {
 					in := layout.Inset{Bottom: 18, Left: 28, Right: 28}
 					if i == 0 {
 						in.Top = 28
+					}
+					if i == len(s.Messages) {
+						return in.Layout(gtx, func(gtx C) D { return a.workingLine(gtx, s) })
 					}
 					return in.Layout(gtx, func(gtx C) D { return a.message(gtx, s.Messages[i]) })
 				})
 			})
 		}),
 		layout.Rigid(a.composer),
+	)
+}
+
+// working reports whether a turn runs in s with nothing moving on screen:
+// no text or reasoning streaming, no tool running, no question waiting for
+// the user. The model is then reading the request, or thinking without
+// showing it; a line says so, rather than a still transcript.
+func (a *App) working(gtx C, s *Session) bool {
+	busy := s.Busy
+	for _, m := range s.Messages {
+		if !busy {
+			break
+		}
+		if m.Running || m.Kind == KindApproval && m.approval != nil && !m.approval.done {
+			busy = false
+		}
+	}
+	if !busy {
+		s.waitSince = time.Time{}
+	} else if s.waitSince.IsZero() {
+		s.waitSince = gtx.Now
+	}
+	return busy
+}
+
+// workingLine is the pulsing "thinking" line, with the time spent waiting
+// once it is long enough to matter.
+func (a *App) workingLine(gtx C, s *Session) D {
+	th := a.th
+	label := a.t("turn.working", a.cfg.AppName)
+	if d := gtx.Now.Sub(s.waitSince); d >= 3*time.Second {
+		label += fmt.Sprintf(" %d s", int(d.Seconds()))
+	}
+	return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
+		layout.Rigid(func(gtx C) D { return ui.Dot(gtx, ui.Pulse(gtx, th.Accent), 8) }),
+		ui.HSpace(10),
+		layout.Rigid(th.Label(14, label, ui.Pulse(gtx, th.Muted), font.Normal).Layout),
 	)
 }
 

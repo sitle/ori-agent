@@ -189,17 +189,22 @@ const (
 	menuCopyPath
 	menuClear
 	menuArchive
+	menuDelete
 )
 
 func (a *App) layoutMenu(gtx C) D {
-	return a.th.Menu(gtx, []ui.MenuItem{
+	items := []ui.MenuItem{
 		{Btn: &a.menuItems[menuRename], Label: a.t("menu.rename")},
 		{Btn: &a.menuItems[menuNew], Label: a.t("menu.new")},
 		{Btn: &a.menuItems[menuCopyPath], Label: a.t("menu.copyPath")},
 		{Btn: &a.menuItems[menuClear], Label: a.t("menu.clear")},
 		{Separator: true},
 		{Btn: &a.menuItems[menuArchive], Label: a.t("menu.archive"), Danger: true},
-	})
+	}
+	if a.cfg.OnDeleteSession != nil && a.cur.parent == nil {
+		items = append(items, ui.MenuItem{Btn: &a.menuItems[menuDelete], Label: a.t("menu.delete"), Danger: true})
+	}
+	return a.th.Menu(gtx, items)
 }
 
 func (a *App) handleMenu(gtx C) {
@@ -230,6 +235,8 @@ func (a *App) handleMenu(gtx C) {
 			a.notify(a.t("toast.cleared"))
 		case menuArchive:
 			a.archive(s)
+		case menuDelete:
+			a.askDelete(s)
 		}
 	}
 	if !a.renaming {

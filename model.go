@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"time"
 
 	"gioui.org/widget"
 )
@@ -83,6 +84,7 @@ type Session struct {
 	ContextUsed, ContextWindow int
 
 	pending   []*Message // sent during the running turn, see interject.go
+	waitSince time.Time  // since when the turn shows nothing moving, see chat.go
 	rewinding bool       // Config.OnRewind is running: no new turn
 
 	project *Project
@@ -90,6 +92,7 @@ type Session struct {
 	cancel  context.CancelFunc
 	btn     widget.Clickable
 	chev    widget.Clickable
+	delBtn  widget.Clickable // delete, on the row in the sidebar
 }
 
 func (s *Session) add(m *Message) { s.Messages = append(s.Messages, m) }
