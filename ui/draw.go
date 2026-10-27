@@ -5,11 +5,14 @@ import (
 	"image/color"
 	"math"
 	"strings"
+	"sync"
 
+	"gioui.org/font"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
+	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget/material"
 )
@@ -102,10 +105,46 @@ func Centered(gtx C, max unit.Dp, w layout.Widget) D {
 	return d
 }
 
+// oneLineKey is what the cut of a text depends on.
+type oneLineKey struct {
+	text   string
+	width  int
+	size   unit.Sp
+	font   font.Font
+	scale  float32
+	shaper *text.Shaper
+}
+
+// oneLines keeps the cut texts: cutting measures several prefixes, which
+// Gio does not keep, and a long transcript or diff cuts hundreds of lines
+// at every frame.
+var oneLines = struct {
+	sync.Mutex
+	m map[oneLineKey]string
+}{m: map[oneLineKey]string{}}
+
+const maxOneLines = 4096
+
 // OneLine lays l out on a single line, cut with a trailing ellipsis when too
 // wide. (Gio's own truncator can draw the ellipsis at the start of the line.)
 func OneLine(gtx C, l material.LabelStyle) D {
 	l.MaxLines = 1
+	key := oneLineKey{l.Text, gtx.Constraints.Max.X, l.TextSize, l.Font, gtx.Metric.PxPerSp, l.Shaper}
+	oneLines.Lock()
+	cut, ok := oneLines.m[key]
+	oneLines.Unlock()
+	if ok {
+		l.Text = cut
+		return l.Layout(gtx)
+	}
+	defer func() {
+		oneLines.Lock()
+		if len(oneLines.m) >= maxOneLines {
+			clear(oneLines.m)
+		}
+		oneLines.m[key] = l.Text
+		oneLines.Unlock()
+	}()
 	width := func(s string) int {
 		g := gtx
 		g.Constraints = layout.Constraints{Max: image.Pt(1<<20, gtx.Constraints.Max.Y)}

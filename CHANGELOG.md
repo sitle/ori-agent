@@ -4,6 +4,12 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [0.10.1] - 2026-10-27
+
+### Corrigé
+
+- Interface ralentie par un long diff dans le fil : `ui.OneLine` mesurait plusieurs fois chaque ligne trop longue pour la couper, à chaque image, et Gio ne garde pas ces mesures. Une modification d'environ 250 lignes coûtait une cinquantaine de millisecondes par image et 45 Mo d'allocations ; la coupe est désormais gardée (selon le texte, la largeur, la taille, la police et l'échelle), et la même image prend moins de 2 ms (`BenchmarkDiff` dans `ui`). Le fil, les aperçus et la barre latérale en profitent aussi.
+
 ## [0.10.0] - 2026-10-27
 
 ### Ajouté
@@ -174,7 +180,8 @@ Première version publique.
 - Documentation en français dans `docs/` : prise en main, écrire un agent, personnalisation, langues, composants, architecture.
 - Documentation pour les assistants de code : skill `skills/ori-agent/SKILL.md`, `llms.txt`, `AGENTS.md`.
 
-[Non publié]: https://github.com/sitle/ori-agent/compare/v0.10.0...HEAD
+[Non publié]: https://github.com/sitle/ori-agent/compare/v0.10.1...HEAD
+[0.10.1]: https://github.com/sitle/ori-agent/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/sitle/ori-agent/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/sitle/ori-agent/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/sitle/ori-agent/compare/v0.7.0...v0.8.0
