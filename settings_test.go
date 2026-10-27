@@ -66,6 +66,7 @@ func TestOnSettings(t *testing.T) {
 
 	c.SetModel(1)
 	c.SetDark(false)
+	c.SetThinking(false)
 	if err := c.SetLocale("en"); err != nil {
 		t.Fatal(err)
 	}
@@ -73,16 +74,16 @@ func TestOnSettings(t *testing.T) {
 	if len(calls) != 1 {
 		t.Fatalf("calls = %d, want 1", len(calls))
 	}
-	if s := calls[0]; s.Model != "Smart" || s.Dark || s.Locale != "en" || s != c.Settings() {
+	if s := calls[0]; s.Model != "Smart" || s.Dark || s.Thinking || s.Locale != "en" || s != c.Settings() {
 		t.Errorf("settings = %+v", s)
 	}
 
 	// A setup toggle, seen at the end of a real frame.
-	a.setup.thinking.Value = false
+	a.setup.thinking.Value = true
 	gtx := layout.Context{Ops: new(op.Ops), Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1},
 		Constraints: layout.Exact(image.Pt(1280, 820)), Now: time.Now()}
 	a.frame(gtx)
-	if len(calls) != 2 || calls[1].Thinking {
+	if len(calls) != 2 || !calls[1].Thinking {
 		t.Fatalf("after frame: %+v", calls)
 	}
 	a.frame(gtx)

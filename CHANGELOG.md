@@ -4,6 +4,13 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [0.10.0] - 2026-10-27
+
+### Ajouté
+
+- `Ctl.SetThinking(on)` active ou désactive le raisonnement étendu des tours suivants depuis une commande, comme l'interrupteur de la page Configuration ; `Config.OnSettings` en est prévenu.
+- `sim` : commande `/think` (`on`, `off`, ou sans argument pour basculer), qui s'appuie sur `Ctl.SetThinking` ; Anna l'utilise.
+
 ## [0.9.0] - 2026-10-27
 
 ### Ajouté
@@ -167,7 +174,8 @@ Première version publique.
 - Documentation en français dans `docs/` : prise en main, écrire un agent, personnalisation, langues, composants, architecture.
 - Documentation pour les assistants de code : skill `skills/ori-agent/SKILL.md`, `llms.txt`, `AGENTS.md`.
 
-[Non publié]: https://github.com/sitle/ori-agent/compare/v0.9.0...HEAD
+[Non publié]: https://github.com/sitle/ori-agent/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/sitle/ori-agent/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/sitle/ori-agent/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/sitle/ori-agent/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/sitle/ori-agent/compare/v0.6.0...v0.7.0

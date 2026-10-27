@@ -70,7 +70,8 @@ func tr(t *oriagent.Turn, key string, args ...any) string {
 	return s
 }
 
-// Commands returns /review and /init, backed by this agent. Their
+// Commands returns /review and /init, backed by this agent, and /think,
+// which turns extended thinking on or off for the next turns. Their
 // descriptions are keys of Translations.
 func (s *Agent) Commands() []*oriagent.Command {
 	return []*oriagent.Command{
@@ -85,6 +86,20 @@ func (s *Agent) Commands() []*oriagent.Command {
 				return err.Error()
 			}
 			return c.T("sim.init.start", s.DocName)
+		}},
+		{Name: "think", Desc: "sim.think.desc", Run: func(c *oriagent.Ctl, arg string) string {
+			on := !c.Settings().Thinking
+			switch strings.ToLower(strings.TrimSpace(arg)) {
+			case "on", "oui", "yes":
+				on = true
+			case "off", "non", "no":
+				on = false
+			}
+			c.SetThinking(on)
+			if on {
+				return c.T("sim.think.on")
+			}
+			return c.T("sim.think.off")
 		}},
 	}
 }

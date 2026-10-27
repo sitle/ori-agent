@@ -12,6 +12,9 @@ var Translations = map[string]map[string]string{
 		"sim.review.start": "Revue lancée sur %s.",
 		"sim.init.desc":    "Générer le fichier de contexte du projet (simulé)",
 		"sim.init.start":   "Analyse du projet pour générer %s.",
+		"sim.think.desc":   "Raisonnement étendu : on ou off",
+		"sim.think.on":     "Raisonnement étendu activé pour les prochains tours.",
+		"sim.think.off":    "Raisonnement étendu désactivé pour les prochains tours.",
 
 		"sim.think1": "L'utilisateur demande : « %s ». Avant de répondre, il me faut du contexte sur le projet %s. " +
 			"Je ne connais pas encore son organisation : je commence par lister le dossier, puis je lis un fichier représentatif. " +
@@ -77,6 +80,9 @@ var Translations = map[string]map[string]string{
 		"sim.review.start": "Review started on %s.",
 		"sim.init.desc":    "Generate the project context file (simulated)",
 		"sim.init.start":   "Analyzing the project to generate %s.",
+		"sim.think.desc":   "Extended thinking: on or off",
+		"sim.think.on":     "Extended thinking on for the next turns.",
+		"sim.think.off":    "Extended thinking off for the next turns.",
 
 		"sim.think1": "The user is asking: \"%s\". Before answering I need some context about the project in %s. " +
 			"I don't know its layout yet, so the first step is to list the directory, then read one representative file. " +

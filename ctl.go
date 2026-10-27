@@ -42,6 +42,11 @@ func (c *Ctl) SetModels(ms []Model) { c.a.setModels(ms) }
 // Settings are the current values of the Configuration page.
 func (c *Ctl) Settings() Settings { return c.a.settings() }
 
+// SetThinking turns extended thinking on or off for the next turns, as the
+// switch of the Configuration page does; Config.OnSettings is told at the
+// end of the frame.
+func (c *Ctl) SetThinking(on bool) { c.a.setup.thinking.Value = on }
+
 // T translates key in the interface language.
 func (c *Ctl) T(key string, args ...any) string { return c.a.t(key, args...) }
 

@@ -273,4 +273,4 @@ for _, m := range s.Messages {
 
 ## S'inspirer de l'agent simulé
 
-Le paquet [`sim`](../sim/sim.go) est un agent complet sans modèle : réflexion, liste de tâches, sous-agent qui explore le dossier, modification proposée avec son diff et approbation, lecture des pièces jointes, commandes `/review` et `/init`, réponses bilingues. C'est le meilleur point de départ pour structurer le vôtre.
+Le paquet [`sim`](../sim/sim.go) est un agent complet sans modèle : réflexion, liste de tâches, sous-agent qui explore le dossier, modification proposée avec son diff et approbation, lecture des pièces jointes, commandes `/review`, `/init` et `/think` (raisonnement étendu activé ou désactivé avec `c.SetThinking`), réponses bilingues. C'est le meilleur point de départ pour structurer le vôtre.

@@ -42,7 +42,7 @@ ori-agent n'enregistre rien lui-même. La structure `oriagent.Settings` réunit 
 | `Locale` | Langue de l'interface |
 
 - `Config.Settings` donne les valeurs de départ. Il prime sur `WorkDir`, `LightMode` et `Locale` ; un dossier qui n'existe plus, une langue sans catalogue ou un modèle inconnu sont ignorés. Sans lui, ce sont les valeurs de `oriagent.DefaultSettings()` : commandes, confirmation des modifications, réflexion et thème sombre activés.
-- `Config.OnSettings` reçoit les nouvelles valeurs à chaque changement : interrupteurs et choix de la Configuration, bouton de thème de la barre de titre, `/model`, `/theme`, `/lang`, dossier appliqué par « Terminer ». Il est appelé à la fin de l'image, dans le fil de l'interface, état verrouillé : il doit rendre la main vite, donc écrire le fichier dans une goroutine.
+- `Config.OnSettings` reçoit les nouvelles valeurs à chaque changement : interrupteurs et choix de la Configuration, bouton de thème de la barre de titre, `/model`, `/theme`, `/lang`, `c.SetThinking`, dossier appliqué par « Terminer ». Il est appelé à la fin de l'image, dans le fil de l'interface, état verrouillé : il doit rendre la main vite, donc écrire le fichier dans une goroutine.
 - Une commande lit les valeurs courantes avec `c.Settings()` ; un agent avec `t.Thinking`, `t.AllowCommands`, `t.AskEdits`, `t.Model`, `t.WorkDir` et `t.Locale`.
 
 `Settings` porte des étiquettes JSON :
@@ -93,6 +93,7 @@ Ce que `Ctl` permet :
 | `User()`, `SetUser(u)` | Profil (voir [Profil](#profil)) |
 | `Dark()`, `SetDark(b)` | Thème |
 | `Settings()` | Valeurs de la page Configuration (voir [Mémoriser les réglages](#mémoriser-les-réglages)) |
+| `SetThinking(b)` | Raisonnement étendu des tours suivants, comme l'interrupteur de la page Configuration |
 | `Locale()`, `Locales()`, `SetLocale(l)`, `LanguageName(l)`, `T(clé)` | Langue et traductions |
 | `ToggleSidebar()`, `ToggleVoice()`, `Pomodoro()` | Barre latérale, dictée, minuteur |
 | `WorkDir()`, `Commands()` | Dossier de travail, liste des commandes |

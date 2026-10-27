@@ -191,7 +191,7 @@ All fields optional (`oriagent.Config`):
 
 ## Persisting settings
 
-ori-agent stores nothing. `oriagent.Settings` holds every Configuration page value: `WorkDir`, `AllowCommands`, `AskEdits`, `Thinking`, `Notifications bool`, `Model` (a `Model.Name`), `Dark`, `Locale`; it has JSON tags. `oriagent.DefaultSettings()` gives the values used when `Config.Settings` is nil (commands, edit confirmation, thinking and dark theme on). At startup a `WorkDir` that is not a folder, an unknown `Locale` or an unknown `Model` are ignored. `OnSettings` fires at the end of the frame for any change (setup toggles, model, theme, language, title bar theme button, `/model`, `/theme`, `/lang`, the setup's Finish), on the UI goroutine with the state locked: save in a goroutine. Commands read the current values with `c.Settings()`, agents with `t.Thinking`, `t.AllowCommands`, `t.AskEdits`, `t.Model`, `t.WorkDir`, `t.Locale`.
+ori-agent stores nothing. `oriagent.Settings` holds every Configuration page value: `WorkDir`, `AllowCommands`, `AskEdits`, `Thinking`, `Notifications bool`, `Model` (a `Model.Name`), `Dark`, `Locale`; it has JSON tags. `oriagent.DefaultSettings()` gives the values used when `Config.Settings` is nil (commands, edit confirmation, thinking and dark theme on). At startup a `WorkDir` that is not a folder, an unknown `Locale` or an unknown `Model` are ignored. `OnSettings` fires at the end of the frame for any change (setup toggles, model, theme, language, title bar theme button, `/model`, `/theme`, `/lang`, `c.SetThinking`, the setup's Finish), on the UI goroutine with the state locked: save in a goroutine. Commands read the current values with `c.Settings()`, agents with `t.Thinking`, `t.AllowCommands`, `t.AskEdits`, `t.Model`, `t.WorkDir`, `t.Locale`.
 
 ```go
 set := oriagent.DefaultSettings()
@@ -221,7 +221,7 @@ oriagent.Run(oriagent.Config{
 }
 ```
 
-`Ctl` methods: `Session()`, `Sessions()`, `Projects()`, `Commands()`, `WorkDir()` (the current session's project folder), `NewSession()`, `NewSessionIn(p)`, `Clear()`, `RunTurn(prompt string, fn TurnFunc) error` (nil fn = configured agent; error if the session is busy), `Open(path) error`, `PickFiles()`, `Notify(msg)`, `Show(view)`, `Models()`, `Model()`, `SetModel(i)`, `SetModels(ms)`, `User()`, `SetUser(u)`, `Dark()`, `SetDark(bool)`, `Settings()`, `Locale()`, `Locales()`, `SetLocale(l) error`, `LanguageName(l)`, `T(key, args...)`, `ToggleSidebar()`, `ToggleVoice()`, `Pomodoro()`.
+`Ctl` methods: `Session()`, `Sessions()`, `Projects()`, `Commands()`, `WorkDir()` (the current session's project folder), `NewSession()`, `NewSessionIn(p)`, `Clear()`, `RunTurn(prompt string, fn TurnFunc) error` (nil fn = configured agent; error if the session is busy), `Open(path) error`, `PickFiles()`, `Notify(msg)`, `Show(view)`, `Models()`, `Model()`, `SetModel(i)`, `SetModels(ms)`, `User()`, `SetUser(u)`, `Dark()`, `SetDark(bool)`, `Settings()`, `SetThinking(bool)`, `Locale()`, `Locales()`, `SetLocale(l) error`, `LanguageName(l)`, `T(key, args...)`, `ToggleSidebar()`, `ToggleVoice()`, `Pomodoro()`.
 
 Built-ins: `/help /new /clear /compact /model /open /usage /status /lang /sidebar /upload /voice /pomodoro /theme /config /profile`.
 
@@ -322,7 +322,7 @@ s, err := h.Run(ctx, nil, "fix the test", nil, oriagent.TurnOptions{WorkDir: dir
 
 ## Simulated agent
 
-`github.com/sitle/ori-agent/sim`: `a := sim.New(); a.DocName = "AGENT.md"`; use `a` as `Config.Agent`, `a.Commands()` for `/review` and `/init`, and merge `sim.Translations`; `Modes: sim.Modes` gives its working modes (`sim.ModeEdit`, `ModePlan`: a Markdown plan to approve, then edit mode; `ModeAuto`: no approval), and it fills the context gauge. Good for UI work without a model and as a structural reference (`sim/sim.go`).
+`github.com/sitle/ori-agent/sim`: `a := sim.New(); a.DocName = "AGENT.md"`; use `a` as `Config.Agent`, `a.Commands()` for `/review`, `/init` and `/think [on|off]` (extended thinking, through `c.SetThinking`), and merge `sim.Translations`; `Modes: sim.Modes` gives its working modes (`sim.ModeEdit`, `ModePlan`: a Markdown plan to approve, then edit mode; `ModeAuto`: no approval), and it fills the context gauge. Good for UI work without a model and as a structural reference (`sim/sim.go`).
 
 ## Common mistakes
 
