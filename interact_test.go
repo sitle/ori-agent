@@ -3,9 +3,17 @@ package oriagent
 import (
 	"context"
 	"errors"
+	"image"
 	"strings"
 	"testing"
 	"time"
+
+	"gioui.org/layout"
+	"gioui.org/op"
+	"gioui.org/unit"
+
+	"github.com/sitle/ori-agent/i18n"
+	"github.com/sitle/ori-agent/ui"
 )
 
 func sessionApp(t *testing.T, cfg Config) (*App, *Session) {
@@ -226,5 +234,38 @@ func TestQueuedPromptNotInHistory(t *testing.T) {
 	a.mu.Unlock()
 	if started {
 		t.Error("a turn started while going back")
+	}
+}
+
+// A panel opens and closes from its button, shows the session shown, and
+// gives way to the preview (Config.Panels).
+func TestPanels(t *testing.T) {
+	var drawn *Session
+	a, s := sessionApp(t, Config{Agent: AgentFunc(func(context.Context, *Turn) error { return nil }),
+		Panels: []Panel{{ID: "sup", Title: "Supervision", Layout: func(gtx layout.Context, _ *ui.Theme, _ i18n.Translator, s *Session) layout.Dimensions {
+			drawn = s
+			return layout.Dimensions{}
+		}}}})
+	a.togglePanel("sup")
+	if p := a.openPanel(); p == nil || p.ID != "sup" {
+		t.Fatal("panel not open")
+	}
+	gtx := layout.Context{Ops: new(op.Ops), Now: time.Now(), Constraints: layout.Exact(image.Pt(1200, 800)), Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1}}
+	a.frame(gtx)
+	if drawn != s {
+		t.Fatalf("panel drew %v", drawn)
+	}
+	a.togglePanel("sup")
+	if a.openPanel() != nil {
+		t.Fatal("panel not closed")
+	}
+	a.togglePanel("inconnu")
+	if a.openPanel() != nil || a.panels.open != "" {
+		t.Fatal("an unknown panel opened")
+	}
+	a.togglePanel("sup")
+	a.showPreview(nil) // nothing to show: the panel stays
+	if a.openPanel() == nil {
+		t.Fatal("closed by an empty preview")
 	}
 }

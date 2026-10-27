@@ -23,6 +23,7 @@ func (a *App) showPreview(d *preview.Doc) {
 		return
 	}
 	a.doc = d
+	a.panels.open = "" // the preview takes the place of a panel
 	d.T = a.tr
 	d.Load(a.w.Invalidate)
 }

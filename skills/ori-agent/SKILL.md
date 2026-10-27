@@ -182,6 +182,7 @@ All fields optional (`oriagent.Config`):
 | `Disable` | `Features` | `Voice, Pomodoro, Attachments, Preview, Setup, Profile, ThemeToggle, BuiltinCommands bool` |
 | `Placeholder`, `ModeLabel`, `EmptyTitle`, `EmptySubtitle` | `string` | text or translation keys; `ModeLabel: "-"` hides the chip (without `Modes`) |
 | `Modes`, `OnMode` | `[]Mode{ID, Label, Desc}`, `func(ctx, *Project, mode string) error` | the chip becomes a menu of working modes, kept per project (`Project.Mode`; nil project: the app's); OnMode keeps the choice on a goroutine, an error puts the previous mode back; `c.Mode()`, `c.SetMode(id)` in commands |
+| `Panels` | `[]Panel{ID, Title, Icon, Layout func(gtx, th, tr, *Session) D}` | title-bar buttons opening a pane at the right of the chat for the session shown (replaces the preview while open); redrawn twice a second while a turn runs; `c.TogglePanel(id)` from a command |
 | `OnRewind` | `func(ctx, *Session, n int) error` | "↶ Revenir ici" on hover of the user's messages, with a confirmation; restore the app's state before the n-th user message (0-based); on success the transcript is cut there and the text goes back to the composer |
 | `Mentions` | `func(*Session, query string) []Mention` | "@word" in the composer lists `Mention{Label, Detail, Insert}` (8 max, one call per query, keep it fast); Tab/Enter inserts "@Insert " |
 | `StartView`, `SetupStep`, `Attach`, `Preview` | | startup state: `"chat"`, `"setup"`, `"profile"` or a page ID; step 1-4; files; file to preview |

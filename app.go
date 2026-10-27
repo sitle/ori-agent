@@ -43,6 +43,7 @@ type App struct {
 	toast    ui.Toast
 	modes    modeState
 	mention  mentionState
+	panels   panelState
 
 	// chat
 	editor     widget.Editor
@@ -277,6 +278,7 @@ func (a *App) setDark(dark bool) { a.th.SetDark(dark) }
 func (a *App) frame(gtx C) {
 	a.handlePalette(gtx)
 	a.handleMentions(gtx)
+	a.handlePanels(gtx)
 	for {
 		ev, ok := a.editor.Update(gtx)
 		if !ok {
@@ -367,6 +369,22 @@ func (a *App) layoutBody(gtx C) D {
 		children = append(children, layout.Rigid(a.layoutSidebar))
 	}
 	children = append(children, layout.Flexed(1, a.layoutView))
+	// An open panel sits next to the chat, in the place of the preview.
+	if p := a.openPanel(); p != nil && a.view == viewChat {
+		avail := gtx.Constraints.Max.X
+		if a.sideOpen {
+			avail -= gtx.Dp(sidebarWidth)
+		}
+		pw := a.clampPreview(gtx, avail)
+		children = append(children,
+			layout.Rigid(a.splitHandle),
+			layout.Rigid(func(gtx C) D {
+				gtx.Constraints.Min.X, gtx.Constraints.Max.X = pw, pw
+				return a.layoutPanel(gtx, p)
+			}),
+		)
+		return layout.Flex{}.Layout(gtx, children...)
+	}
 	// The preview sits next to the chat, and next to a project's page so its
 	// files can be read without leaving it.
 	if a.doc != nil && (a.view == viewChat || a.view == viewProject) && !a.cfg.Disable.Preview {

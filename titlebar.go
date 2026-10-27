@@ -91,6 +91,7 @@ func (a *App) titleBarItems(gtx C) D {
 		ui.HSpace(14),
 		layout.Flexed(1, a.titleArea),
 		layout.Rigid(a.voicePill),
+		layout.Rigid(a.panelButtons),
 		layout.Rigid(func(gtx C) D {
 			if a.cfg.Disable.Pomodoro {
 				return D{}

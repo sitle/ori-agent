@@ -160,6 +160,28 @@ OnMode: func(ctx context.Context, p *oriagent.Project, mode string) error {
 
 L'agent simulé fournit ses propres modes, `sim.Modes` : « Édition » (demande avant de modifier, selon les autorisations), « Plan » (un plan à valider, puis passage en Édition) et « Auto » (modifie sans demander). L'exemple Anna les utilise et garde le mode de chaque projet créé dans son `project.json` (`OnMode`).
 
+## Panneaux
+
+`Panels` ajoute des panneaux à droite du fil, chacun ouvert et fermé par son bouton dans la barre de titre (ou `c.TogglePanel(id)` depuis une commande) : une supervision des agents, un résumé du travail, des indicateurs… `Layout` dessine le contenu pour la session affichée, dans une colonne défilante que le canevas coiffe du titre et d'un bouton de fermeture.
+
+```go
+Panels: []oriagent.Panel{{
+	ID: "supervision", Title: "sup.title",
+	Layout: func(gtx layout.Context, th *ui.Theme, tr i18n.Translator, s *oriagent.Session) layout.Dimensions {
+		return dessinerEtat(gtx, th, monAgent.Etat(s.ID))
+	},
+}},
+```
+
+- Un panneau ouvert prend la place de l'aperçu ; ouvrir un fichier dans l'aperçu ferme le panneau.
+- `Layout` est appelé à chaque image, et deux fois par seconde tant qu'un tour tourne dans la session (ou l'un de ses sous-agents) : il peut montrer un état qui change sans que l'agent écrive dans le fil. Il doit rester rapide et lire un état déjà calculé.
+- La session reçue est celle affichée, qui peut être celle d'un sous-agent : `s.Parent()` remonte à la session principale.
+- `c.TogglePanel` avec un identifiant inconnu, ou un panneau sans `Layout`, ne fait rien.
+
+L'exemple Anna ([`examples/anna/supervision.go`](../examples/anna/supervision.go)) ajoute un panneau « Supervision » construit uniquement avec l'API publique : état de la session, mode, nombre d'appels d'outils, contexte, liste de tâches en cours et sous-agents.
+
+![Le panneau Supervision pendant un tour](images/supervision.png)
+
 ## Revenir à un message
 
 Avec `OnRewind`, chaque message de l'utilisateur montre « ↶ Revenir ici » au survol, hors tour en cours. Après confirmation, la fonction reçoit la session et le rang du message parmi ceux de l'utilisateur (0 pour le premier) ; l'application y rétablit son propre état (fichiers modifiés, historique de l'agent). Si elle réussit, le fil est coupé avant ce message et son texte revient dans la zone de saisie, prêt à être modifié ; sinon l'erreur s'affiche et rien ne change.

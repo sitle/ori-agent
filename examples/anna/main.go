@@ -86,10 +86,11 @@ func main() {
 		Agent:    agent,
 		Commands: append(agent.Commands(), loginCommand), // /review, /init, /login
 		Pages:    []oriagent.Page{shortcutsPage},
+		Panels:   []oriagent.Panel{supervisionPanel}, // supervision.go
 
 		// Interface language: the framework's catalogs, plus the simulated
 		// agent's and this app's own texts (demo.go).
-		Translations: i18n.Merge(sim.Translations, translations),
+		Translations: i18n.Merge(sim.Translations, translations, supervisionTranslations),
 		OnLocale:     st.setLocale,
 
 		// Configuration page values, restored and saved by the app.

@@ -165,6 +165,8 @@ type Config struct {
 	Projects     []*Project // demo data; default: one empty session
 	Commands     []*Command // added to the built-in ones
 	Pages        []Page
+	// Panels are panes at the right of the chat, opened from the title bar.
+	Panels []Panel
 
 	Dictation Dictation // default: simulated
 	Pomodoro  PomodoroConfig

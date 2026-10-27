@@ -4,6 +4,23 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [0.8.0] - 2026-10-26
+
+### Ajouté
+
+- Panneaux de l'application : `Config.Panels` (`Panel{ID, Title, Icon, Layout}`) ajoute des boutons dans la barre de titre ; chacun ouvre, à droite du fil, un panneau qui dessine ce que l'application veut sur la session affichée (`Layout(gtx, th, tr, session)`), dans une colonne défilante avec un titre et un bouton de fermeture. Le panneau prend la place de l'aperçu, et l'aperçu la sienne ; il est redessiné deux fois par seconde tant qu'un tour tourne dans la session. `Ctl.TogglePanel(id)` l'ouvre ou le ferme depuis une commande ; un identifiant inconnu, ou un panneau sans `Layout`, ne fait rien.
+- Exemple Anna : panneau « Supervision » (état, mode, outils, contexte, tâches, sous-agents), écrit avec l'API publique.
+- Capture du panneau dans la documentation ; captures mises à jour avec le nouveau bouton de la barre de titre.
+
+### Corrigé
+
+- Les boutons d'une demande d'approbation passent à la ligne quand la carte est étroite (aperçu ou panneau ouvert), au lieu de couper leur texte.
+- L'aperçu des PDF fonctionne dans un exécutable sans console (`-ldflags=-H=windowsgui`) : PDFium n'écrit plus sur une sortie standard absente.
+
+### Corrigé
+
+- Aperçu des PDF : dans une application construite sans console (`-H=windowsgui` sous Windows), le rendu échouait avec « could not instantiate webassembly module: GetFileType /dev/stdout ». PDFium n'écrit plus sur la sortie standard.
+
 ## [0.7.0] - 2026-10-26
 
 ### Ajouté
@@ -141,7 +158,8 @@ Première version publique.
 - Documentation en français dans `docs/` : prise en main, écrire un agent, personnalisation, langues, composants, architecture.
 - Documentation pour les assistants de code : skill `skills/ori-agent/SKILL.md`, `llms.txt`, `AGENTS.md`.
 
-[Non publié]: https://github.com/sitle/ori-agent/compare/v0.7.0...HEAD
+[Non publié]: https://github.com/sitle/ori-agent/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/sitle/ori-agent/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/sitle/ori-agent/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/sitle/ori-agent/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/sitle/ori-agent/compare/v0.5.0...v0.5.1

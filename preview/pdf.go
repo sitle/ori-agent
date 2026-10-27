@@ -3,6 +3,7 @@ package preview
 import (
 	"image"
 	"image/draw"
+	"io"
 	"sync"
 	"time"
 
@@ -25,7 +26,9 @@ const maxPDFPages = 50
 // runtime is started on first use, which takes about a second.
 func RenderPDF(data []byte, dpi int) ([]*image.RGBA, error) {
 	pdfOnce.Do(func() {
-		pdfPool, pdfErr = webassembly.Init(webassembly.Config{MinIdle: 1, MaxIdle: 1, MaxTotal: 1})
+		// No console in a window build (-H=windowsgui): the runtime would fail
+		// on the invalid standard handles, so PDFium writes nowhere.
+		pdfPool, pdfErr = webassembly.Init(webassembly.Config{MinIdle: 1, MaxIdle: 1, MaxTotal: 1, Stdout: io.Discard, Stderr: io.Discard})
 	})
 	if pdfErr != nil {
 		return nil, pdfErr

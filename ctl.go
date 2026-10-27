@@ -64,6 +64,10 @@ func (c *Ctl) SetLocale(locale string) error {
 // Show switches the main area to "chat", "setup", "profile" or a Page ID.
 func (c *Ctl) Show(view string) { c.a.view = view }
 
+// TogglePanel opens the panel id (Config.Panels) next to the chat, or
+// closes it when it is open.
+func (c *Ctl) TogglePanel(id string) { c.a.togglePanel(id) }
+
 // Open shows a file in the preview pane; relative paths are resolved
 // against the working directory of the current session.
 func (c *Ctl) Open(path string) error {

@@ -172,16 +172,16 @@ func (a *App) approvalCard(gtx C, m *Message) D {
 				if ap.req.DenyLabel != "" {
 					deny = a.t(ap.req.DenyLabel)
 				}
-				buttons := []layout.FlexChild{
-					layout.Rigid(func(gtx C) D { return th.Button(gtx, &ap.allow, allow, ui.Primary) }),
+				// A flow, so that a narrow card (next to the preview) puts the
+				// last buttons on a new row rather than squeezing their text.
+				buttons := []layout.Widget{
+					func(gtx C) D { return th.Button(gtx, &ap.allow, allow, ui.Primary) },
 				}
 				if ap.req.AllowSession {
-					buttons = append(buttons, ui.HSpace(8),
-						layout.Rigid(func(gtx C) D { return th.Button(gtx, &ap.always, a.t("approval.always"), ui.Secondary) }))
+					buttons = append(buttons, func(gtx C) D { return th.Button(gtx, &ap.always, a.t("approval.always"), ui.Secondary) })
 				}
-				buttons = append(buttons, ui.HSpace(8),
-					layout.Rigid(func(gtx C) D { return th.Button(gtx, &ap.deny, deny, ui.Secondary) }))
-				return layout.Flex{Alignment: layout.Middle}.Layout(gtx, buttons...)
+				buttons = append(buttons, func(gtx C) D { return th.Button(gtx, &ap.deny, deny, ui.Secondary) })
+				return ui.Flow(gtx, 8, buttons)
 			}))
 			return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
 		})
