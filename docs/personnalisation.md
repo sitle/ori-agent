@@ -204,6 +204,25 @@ L'exemple Anna ([`examples/anna/store.go`](../examples/anna/store.go)) ne garde 
 
 ![La confirmation de suppression d'une session](images/suppression.png)
 
+## Copier depuis le fil
+
+Le texte du fil ne se sélectionne pas : chaque réponse de l'agent et chaque message de l'utilisateur montre « Copier » au survol, et chaque bloc de code d'une réponse un bouton « Copier » dans son coin. La réponse est copiée en Markdown, qui se colle bien dans un document ou un éditeur, et le bloc de code tel quel. Rien à configurer.
+
+![Copie d'un bloc de code depuis le fil](images/copie.png)
+
+## Liens du fil
+
+Un lien Markdown ou une adresse `http(s)://` du fil s'ouvre d'un clic, après confirmation : une boîte montre le site et l'adresse complète, puis « Ouvrir » la passe au navigateur du système. Seules les adresses `http`, `https` et `mailto` s'ouvrent. Pour les traiter autrement (journal, liste d'adresses autorisées, ouverture dans l'application), donnez `OnLink`, appelée après la confirmation :
+
+```go
+OnLink: func(url string) error {
+	log.Printf("lien ouvert : %s", url)
+	return exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+},
+```
+
+![La confirmation avant d'ouvrir un lien](images/lien.png)
+
 ## Revenir à un message
 
 Avec `OnRewind`, chaque message de l'utilisateur montre « ↶ Revenir ici » au survol, hors tour en cours. Après confirmation, la fonction reçoit la session et le rang du message parmi ceux de l'utilisateur (0 pour le premier) ; l'application y rétablit son propre état (fichiers modifiés, historique de l'agent). Si elle réussit, le fil est coupé avant ce message et son texte revient dans la zone de saisie, prêt à être modifié ; sinon l'erreur s'affiche et rien ne change.
@@ -248,7 +267,7 @@ Ils s'exécutent dans une goroutine ; une erreur reste affichée dans le formula
 
 **`ProjectFiles(projet)`** ajoute à la page d'un projet une section « Fichiers » : l'application renvoie une liste de `ProjectFile` (`Name`, `Detail` pour la taille, la date ou une empreinte, `Path`, `Warning` affiché en rouge). Un clic sur un fichier dont `Path` est renseigné l'ouvre dans l'aperçu, à côté de la page. La liste est demandée dans une goroutine à chaque ouverture de la page ; un message d'attente s'affiche en attendant.
 
-**`Convert`** fournit l'aperçu des fichiers que le panneau ne lit pas lui-même : documents Word, Excel, PowerPoint, ou tout autre format binaire. La fonction reçoit le chemin et rend un `preview.Converted` : `PDF` (les octets d'un PDF, affiché page par page comme un PDF ordinaire) ou `Markdown` (affiché comme un fichier Markdown), avec un `Label` pour l'en-tête du panneau (« Word »). Elle tourne dans une goroutine, « Conversion du document… » s'affiche en attendant ; une erreur est affichée dans le panneau, et `nil` laisse le fichier affiché comme binaire. Les textes, images et PDF ne passent jamais par elle.
+**`Convert`** fournit l'aperçu des fichiers que le panneau ne lit pas lui-même : documents Word, Excel, PowerPoint, ou tout autre format binaire. La fonction reçoit le chemin et rend un `preview.Converted` : `PDF` (les octets d'un PDF, affiché page par page comme un PDF ordinaire) ou `Markdown` (affiché comme un fichier Markdown), avec un `Label` pour l'en-tête du panneau (« Word »). Elle tourne dans une goroutine, « Conversion du document… » s'affiche en attendant ; une erreur est affichée dans le panneau, et `nil` laisse le fichier affiché comme binaire. Les fichiers SVG passent aussi par elle, pour les dessiner (en PDF) avec leurs textes : si elle rend `nil` ou une erreur, le panneau montre leur source. Les autres textes, les images et les PDF ne passent jamais par elle.
 
 L'exemple Anna ([`examples/anna/convert.go`](../examples/anna/convert.go)) convertit ainsi les documents Word (`.docx`) en Markdown, en lisant leur XML, sans dépendance : titres, listes et paragraphes. Pour les autres formats, une application peut passer par LibreOffice (`soffice --headless --convert-to pdf`) et rendre le PDF obtenu. Essayez avec `/open examples/anna/docs/note-de-cadrage.docx`.
 

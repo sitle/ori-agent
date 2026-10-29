@@ -45,6 +45,7 @@ type App struct {
 	mention  mentionState
 	panels   panelState
 	del      deleteState
+	link     linkState
 
 	// chat
 	editor     widget.Editor
@@ -109,6 +110,7 @@ func newApp(cfg Config, w *app.Window) *App {
 		a.tr.SetLocale(i18n.Detect()) // keeps the fallback if unavailable
 	}
 	a.th = ui.NewTheme(cfg.Light, cfg.Dark, cfg.Fonts...)
+	a.th.OpenLink = a.openLink
 	a.th.SetDark(!cfg.LightMode)
 	if set != nil {
 		a.th.SetDark(set.Dark)
@@ -281,6 +283,7 @@ func (a *App) frame(gtx C) {
 	a.handleMentions(gtx)
 	a.handlePanels(gtx)
 	a.handleDelete(gtx)
+	a.handleLink(gtx)
 	for {
 		ev, ok := a.editor.Update(gtx)
 		if !ok {
@@ -362,6 +365,7 @@ func (a *App) frame(gtx C) {
 		layout.Flexed(1, a.layoutBody),
 	)
 	a.layoutDelete(gtx)
+	a.layoutLink(gtx)
 	a.toast.Layout(gtx, a.th)
 	a.checkSettings()
 }

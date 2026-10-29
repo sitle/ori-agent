@@ -4,6 +4,16 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [0.11.0] - 2026-10-28
+
+### Ajouté
+
+- Copier depuis le fil : le texte dessiné ne se sélectionne pas, alors chaque réponse de l'agent et chaque message de l'utilisateur montre « Copier » au survol, et chaque bloc de code d'une réponse un bouton « Copier » dans son coin. La réponse est copiée en Markdown, le bloc de code tel quel ; un avis le confirme.
+- Liens cliquables dans le fil : un lien Markdown `[texte](adresse)` ou une adresse `http(s)://` écrite telle quelle s'ouvre d'un clic, après confirmation. Une boîte montre le site et l'adresse complète, puisque le texte d'un lien peut dire autre chose que sa destination ; « Ouvrir » la passe au navigateur du système, ou à `Config.OnLink`. Seules les adresses `http`, `https` et `mailto` s'ouvrent : un lien écrit par le modèle ne lance pas de programme et n'ouvre pas de fichier local.
+- `ui` : `Span.URL` garde l'adresse d'un lien, `ui.BareURL` reconnaît une adresse écrite telle quelle, et `Theme.OpenLink` reçoit l'adresse d'un lien cliqué dans `RichText` ou `Markdown` (nil : les liens sont seulement colorés).
+- Aperçu des schémas SVG : avec `Config.Convert`, un fichier `.svg` passe par le convertisseur de l'application, qui peut le rendre en PDF pour le dessiner avec ses textes ; s'il ne le rend pas, ou en cas d'erreur, le panneau montre sa source, comme avant.
+- `th.MarkdownWith(size, src, ui.MDOptions{CodeAction: …})` dessine un texte comme `th.Markdown`, avec un élément dans le coin de chaque bloc de code (par exemple un bouton de copie), qui reçoit son rang et son texte.
+
 ## [0.10.1] - 2026-10-27
 
 ### Corrigé
@@ -180,7 +190,8 @@ Première version publique.
 - Documentation en français dans `docs/` : prise en main, écrire un agent, personnalisation, langues, composants, architecture.
 - Documentation pour les assistants de code : skill `skills/ori-agent/SKILL.md`, `llms.txt`, `AGENTS.md`.
 
-[Non publié]: https://github.com/sitle/ori-agent/compare/v0.10.1...HEAD
+[Non publié]: https://github.com/sitle/ori-agent/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/sitle/ori-agent/compare/v0.10.1...v0.11.0
 [0.10.1]: https://github.com/sitle/ori-agent/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/sitle/ori-agent/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/sitle/ori-agent/compare/v0.8.0...v0.9.0

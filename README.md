@@ -112,7 +112,7 @@ Le projet est expérimental (version 0.x) : l'API peut encore changer d'une vers
 - ori-agent n'enregistre rien lui-même : il transmet les réglages, le profil et les projets à votre application, qui choisit où les garder. Les sessions et leurs conversations restent en mémoire.
 - Fenêtre sans décoration native : sous macOS, les pastilles de fenêtre disparaissent.
 - Pas de glisser-déposer de fichiers depuis le système (non pris en charge par Gio v0.8).
-- Le Markdown couvre l'essentiel (titres, listes, citations, code, tableaux, gras, italique) ; les liens sont mis en forme mais pas encore cliquables.
+- Le Markdown couvre l'essentiel (titres, listes, citations, code, tableaux, gras, italique, liens). Le texte du fil ne se sélectionne pas : il se copie avec les boutons « Copier ».
 
 ## Contribuer
 

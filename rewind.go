@@ -2,10 +2,12 @@ package oriagent
 
 import (
 	"context"
+	"image"
 	"slices"
 
 	"gioui.org/font"
 	"gioui.org/layout"
+	"gioui.org/op"
 	"gioui.org/widget"
 
 	"github.com/sitle/ori-agent/ui"
@@ -170,7 +172,24 @@ func (a *App) userMessage(gtx C, m *Message) D {
 					return layout.Inset{Top: 4}.Layout(gtx, th.Label(12, a.t("composer.queued"), th.Muted, font.Normal).Layout)
 				})
 			}
-			return layout.E.Layout(gtx, func(gtx C) D { return a.rewindAction(gtx, a.cur, m) })
+			return layout.E.Layout(gtx, func(gtx C) D {
+				return layout.Flex{Alignment: layout.Start}.Layout(gtx,
+					layout.Rigid(func(gtx C) D { return a.copyAction(gtx, m) }),
+					layout.Rigid(func(gtx C) D {
+						// The gap only when there is an action to go back.
+						rec := op.Record(gtx.Ops)
+						d := a.rewindAction(gtx, a.cur, m)
+						call := rec.Stop()
+						if d.Size.X == 0 {
+							return d
+						}
+						defer op.Offset(image.Pt(gtx.Dp(14), 0)).Push(gtx.Ops).Pop()
+						call.Add(gtx.Ops)
+						d.Size.X += gtx.Dp(14)
+						return d
+					}),
+				)
+			})
 		}),
 	)
 }

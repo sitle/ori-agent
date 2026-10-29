@@ -193,6 +193,10 @@ type Config struct {
 	// own record; then the transcript is cut there and the message's text
 	// returns to the composer. Nil: no "Go back here" action.
 	OnRewind func(ctx context.Context, s *Session, n int) error
+
+	// OnLink opens the address of a link the user clicked in the transcript
+	// and confirmed (http, https or mailto only). Nil: the system's browser.
+	OnLink func(url string) error
 	// Mentions suggests what "@query" in the composer may refer to, files
 	// most often; called on the UI goroutine when the query changes, so it
 	// must answer quickly. Nil: no suggestions.

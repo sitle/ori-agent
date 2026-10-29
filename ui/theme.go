@@ -29,6 +29,9 @@ type Theme struct {
 	Dark     bool
 	// MonoFace is the typeface used for code, paths and timers.
 	MonoFace font.Typeface
+	// OpenLink, if set, is called with the address of a link of a text
+	// (RichText, Markdown) the user clicks; nil: links are only colored.
+	OpenLink func(url string)
 
 	light, dark theme.Palette
 }

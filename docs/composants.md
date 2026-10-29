@@ -16,7 +16,7 @@ Le `Theme` porte la palette active (`th.Bg`, `th.Text`, `th.Accent`…) et le mo
 | Famille | Fonctions et méthodes |
 |---|---|
 | Texte | `th.Label`, `th.Mono`, `th.Body`, `ui.OneLine` (une ligne coupée par « … ») |
-| Markdown et texte riche | `th.Markdown`, `th.MarkdownBlock`, `th.RichText`, `ui.ParseMarkdown`, `ui.ParseInline`, `ui.PlainInline` (voir plus bas) |
+| Markdown et texte riche | `th.Markdown`, `th.MarkdownWith`, `th.MarkdownBlock`, `th.RichText`, `ui.ParseMarkdown`, `ui.ParseInline`, `ui.PlainInline` (voir plus bas) |
 | Boutons | `th.Button` (`ui.Primary`, `ui.Secondary`, `ui.Danger`), `th.IconButton`, `th.RoundButton`, `th.NavRow` |
 | Formulaires | `th.Field`, `th.ToggleRow`, `th.Switch`, `th.Radio`, `th.ChoiceCard` |
 | Mise en page | `th.Page`, `th.Section`, `th.Panel`, `ui.Card`, `ui.Bordered`, `ui.Centered`, `ui.Flow`, `ui.HSpace`, `ui.VSpace`, `ui.Expand`, `th.HLine` |
@@ -51,8 +51,12 @@ widget := th.Markdown(15, "## Résultat\n\nLe fichier **config.yaml** est *valid
 ```
 
 - **Blocs** : titres, paragraphes, listes à puces (imbriquées) et numérotées, citations, blocs de code, tableaux, filets.
-- **En ligne** : gras, italique, `code` et liens. Les liens sont mis en forme mais pas cliquables.
+- **En ligne** : gras, italique, `code` et liens (voir plus bas).
 - **Streaming** : un marqueur encore ouvert (`**gras` sans sa fin) reste affiché tel quel, ce qui permet d'afficher un texte en cours d'écriture.
+
+Les liens (`[texte](adresse)`, ou une adresse `http(s)://` écrite telle quelle, reconnue par `ui.BareURL`) sont colorés ; avec `th.OpenLink`, un clic sur l'un d'eux appelle cette fonction avec son adresse (`Span.URL`). Le fil s'en sert pour demander confirmation avant d'ouvrir le navigateur.
+
+`th.MarkdownWith(15, texte, ui.MDOptions{CodeAction: f})` ajoute `f(gtx, i, code)` dans le coin du bloc de code de rang `i` : le fil s'en sert pour son bouton « Copier ».
 
 Pour un rendu sur mesure, `ui.ParseMarkdown` découpe un texte en blocs (`MDBlock`), `th.MarkdownBlock` en dessine un, `ui.ParseInline` découpe une ligne en segments stylés (`Span`) et `th.RichText` les dessine avec un retour à la ligne entre les mots. `ui.PlainInline` donne le texte sans sa mise en forme.
 

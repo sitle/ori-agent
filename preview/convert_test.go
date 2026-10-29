@@ -46,6 +46,22 @@ func TestConverter(t *testing.T) {
 		t.Fatalf("error: %q %v", d.err, d.loading)
 	}
 
+	// An SVG drawing goes to the converter too; if it is not drawn, its
+	// source is shown.
+	svg := filepath.Join(t.TempDir(), "schema.svg")
+	os.WriteFile(svg, []byte("<svg>\n<rect/>\n</svg>\n"), 0o644)
+	d = OpenWith(svg, "", func(string) (*Converted, error) { return nil, errors.New("Edge absent") })
+	if d.Kind != PDF || !d.loading {
+		t.Fatalf("svg not converted: %v", d.Kind)
+	}
+	wait(d)
+	if d.Kind != Code || len(d.lines) != 3 || d.err != "" {
+		t.Fatalf("svg source: %v %q %q", d.Kind, d.lines, d.err)
+	}
+	if d := Open(svg, ""); d.Kind != Code {
+		t.Fatalf("svg without converter: %v", d.Kind)
+	}
+
 	// Without a converter, as before.
 	if d := Open(path, ""); d.Kind != Code || d.lines[0] != "(binary file)" {
 		t.Fatalf("without converter: %v", d.Kind)

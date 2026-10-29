@@ -66,6 +66,7 @@ type Message struct {
 
 	toggle, toggleTail, open widget.Clickable
 	rewind                   rewindState
+	copy                     copyState
 }
 
 // Session is a conversation; Children are the subagents it spawned.

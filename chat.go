@@ -206,7 +206,7 @@ func (a *App) message(gtx C, m *Message) D {
 		gtx.Constraints.Min.X = gtx.Constraints.Max.X
 		return m.rewind.hover.Layout(gtx, func(gtx C) D { return a.userMessage(gtx, m) })
 	case KindAssistant:
-		return th.Markdown(15, m.Text)(gtx)
+		return a.assistantMessage(gtx, m)
 	case KindThinking:
 		return a.thinking(gtx, m)
 	case KindTool:

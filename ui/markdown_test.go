@@ -53,7 +53,7 @@ func TestParseInline(t *testing.T) {
 	cases := map[string][]Span{
 		"**Je peux** : lire": {{Text: "Je peux", Bold: true}, {Text: " : lire"}},
 		"a *b* `c` [d](https://x.pf)": {
-			{Text: "a "}, {Text: "b", Italic: true}, {Text: " "}, {Text: "c", Code: true}, {Text: " "}, {Text: "d", Link: true},
+			{Text: "a "}, {Text: "b", Italic: true}, {Text: " "}, {Text: "c", Code: true}, {Text: " "}, {Text: "d", Link: true, URL: "https://x.pf"},
 		},
 		// Still streaming: the closing marker has not arrived yet.
 		"**gras pas fini":  {{Text: "**gras pas fini"}},

@@ -61,6 +61,7 @@ type Doc struct {
 
 	pdfData []byte
 	conv    Converter  // converts the file in Load (OpenWith)
+	text    []string   // an SVG's source, shown if conv does not draw it
 	label   string     // kind shown in the header, from the converter
 	mu      sync.Mutex // guards Kind once Load started, and the fields below
 	loading bool
@@ -109,7 +110,8 @@ func DecodeImage(path string) (image.Image, bool) {
 func Open(path, fallback string) *Doc { return OpenWith(path, fallback, nil) }
 
 // OpenWith is Open, with conv for the files that are not text, images or
-// PDF: Load converts them in the background.
+// PDF, and for SVG drawings, whose source is shown if conv returns nil:
+// Load converts them in the background.
 func OpenWith(path, fallback string, conv Converter) *Doc {
 	d := &Doc{Name: filepath.Base(path), Path: path}
 	d.list.Axis = layout.Vertical
@@ -138,6 +140,11 @@ func OpenWith(path, fallback string, conv Converter) *Doc {
 			for i := 0; i < utf8.UTFMax-1 && !utf8.Valid(data); i++ {
 				data = data[:len(data)-1]
 			}
+		}
+		if utf8.Valid(data) && ext(path) == "svg" && conv != nil {
+			text := strings.ReplaceAll(strings.TrimRight(string(data), "\n"), "\r\n", "\n")
+			d.Kind, d.conv, d.loading, d.text = PDF, conv, true, strings.Split(text, "\n")
+			return d
 		}
 		if utf8.Valid(data) {
 			src = string(data)
@@ -193,6 +200,10 @@ func (d *Doc) convert() bool {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	switch {
+	case (err != nil || c == nil) && d.text != nil:
+		// An SVG the application does not draw: its source.
+		d.Kind, d.loading, d.lines = Code, false, d.text
+		return false
 	case err != nil:
 		d.loading, d.err = false, err.Error()
 		return false

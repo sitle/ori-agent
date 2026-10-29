@@ -38,7 +38,7 @@ func demoProjects(cwd, doc string) []*oriagent.Project {
 			"## Flags\n\n| Flag | Effect |\n|---|---|\n| `--config`  | config file    |\n| `--verbose` | verbose output |\n"),
 		oriagent.ToolMsg("Bash", "go test ./...", "ok  \texample.com/mycli/cmd\t0.412s\nok  \texample.com/mycli/internal/log\t0.108s"),
 		oriagent.ToolMsg("Read", doc, "PDF document - click the file name to open it in the preview pane."),
-		oriagent.TextMsg("Added a persistent `--verbose` / `-v` flag in cmd/root.go and a row for it in the README's flag table. Tests pass.\n\n" +
+		oriagent.TextMsg("Added a persistent `--verbose` / `-v` flag in cmd/root.go and a row for it in the README's flag table ([flag docs](https://pkg.go.dev/github.com/spf13/pflag)). Tests pass:\n\n```sh\ngo run . --verbose\n```\n\n" +
 			"This transcript is canned demo content - type a message below to start a simulated run in the current directory."),
 	}}
 	for _, c := range []struct{ title, task, tool, arg, out string }{

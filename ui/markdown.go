@@ -112,6 +112,7 @@ func ParseMarkdown(src string) []MDBlock {
 type Span struct {
 	Text                     string
 	Bold, Italic, Code, Link bool
+	URL                      string // of a link
 }
 
 var mdLinkRe = regexp.MustCompile(`^\[([^\]]+)\]\(([^)\s]+)\)`)
@@ -165,7 +166,7 @@ func ParseInline(s string) []Span {
 		case rest[0] == '[':
 			if m := mdLinkRe.FindStringSubmatch(rest); m != nil {
 				flush()
-				spans = append(spans, Span{Text: m[1], Link: true, Bold: bold, Italic: italic})
+				spans = append(spans, Span{Text: m[1], Link: true, URL: m[2], Bold: bold, Italic: italic})
 				i += len(m[0])
 				continue
 			}
@@ -197,6 +198,7 @@ func (t *Theme) RichText(size unit.Sp, c color.NRGBA, w font.Weight, spans []Spa
 			dims D
 			x    int
 			code bool
+			url  string // a link's: clicked, it is opened
 		}
 		var line []item
 		x, y, width := 0, 0, 0
@@ -215,6 +217,9 @@ func (t *Theme) RichText(size unit.Sp, c color.NRGBA, w font.Weight, spans []Spa
 					paint.FillShape(gtx.Ops, t.Code, clip.UniformRRect(r, gtx.Dp(4)).Op(gtx.Ops))
 				}
 				it.call.Add(gtx.Ops)
+				if it.url != "" && t.OpenLink != nil {
+					t.linkArea(gtx, it.dims.Size, it.url)
+				}
 				st.Pop()
 			}
 			if len(line) > 0 {
@@ -231,11 +236,15 @@ func (t *Theme) RichText(size unit.Sp, c color.NRGBA, w font.Weight, spans []Spa
 			for i, word := range words {
 				l := t.Label(size, word, c, w)
 				l.LineHeightScale = 1.45
+				url := sp.URL
+				if !sp.Link && !sp.Code {
+					url = BareURL(word)
+				}
 				switch {
 				case sp.Code:
 					l.Font.Typeface = t.MonoFace
 					l.TextSize = size * 92 / 100
-				case sp.Link:
+				case sp.Link || url != "":
 					l.Color = t.Accent
 				}
 				if sp.Bold {
@@ -257,7 +266,7 @@ func (t *Theme) RichText(size unit.Sp, c color.NRGBA, w font.Weight, spans []Spa
 					flushLine()
 					gap = 0
 				}
-				line = append(line, item{call: call, dims: dims, x: x + gap, code: sp.Code})
+				line = append(line, item{call: call, dims: dims, x: x + gap, code: sp.Code, url: url})
 				x += gap + dims.Size.X
 			}
 			spaceBefore = len(sp.Text) > 0 && strings.ContainsRune(" \t\n", rune(sp.Text[len(sp.Text)-1]))
@@ -272,6 +281,18 @@ func (t *Theme) RichText(size unit.Sp, c color.NRGBA, w font.Weight, spans []Spa
 
 // Markdown draws a Markdown text, such as a chat answer, at body size.
 func (t *Theme) Markdown(size unit.Sp, src string) layout.Widget {
+	return t.MarkdownWith(size, src, MDOptions{})
+}
+
+// MDOptions adds to the drawing of a Markdown text.
+type MDOptions struct {
+	// CodeAction, if set, is drawn in the top right corner of the i-th
+	// code block (from 0), whose text is code: a copy button, say.
+	CodeAction func(gtx C, i int, code string) D
+}
+
+// MarkdownWith draws a Markdown text like Markdown, with opts.
+func (t *Theme) MarkdownWith(size unit.Sp, src string, opts MDOptions) layout.Widget {
 	return func(gtx C) D {
 		blocks := ParseMarkdown(src)
 		// Blank lines only separate blocks: none at the ends, one at most
@@ -287,11 +308,40 @@ func (t *Theme) Markdown(size unit.Sp, src string) layout.Widget {
 			kept = kept[:len(kept)-1]
 		}
 		children := make([]layout.FlexChild, len(kept))
+		code := 0
 		for i, b := range kept {
+			if b.Kind == MDCode && opts.CodeAction != nil {
+				n := code
+				code++
+				children[i] = layout.Rigid(func(gtx C) D { return t.codeBlock(gtx, b, n, opts.CodeAction) })
+				continue
+			}
 			children[i] = layout.Rigid(func(gtx C) D { return t.MarkdownBlock(gtx, size, b) })
 		}
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
 	}
+}
+
+// codeBlock draws a fenced code block, with action in its top right corner.
+func (t *Theme) codeBlock(gtx C, b MDBlock, i int, action func(gtx C, i int, code string) D) D {
+	code := strings.Join(b.Lines, "\n")
+	return layout.Inset{Top: 4, Bottom: 4}.Layout(gtx, func(gtx C) D {
+		gtx.Constraints.Min.X = gtx.Constraints.Max.X
+		return Bordered(gtx, t.Code, t.Border, 6, func(gtx C) D {
+			if action == nil {
+				return layout.UniformInset(12).Layout(gtx, t.CodeLines(code))
+			}
+			return layout.Stack{Alignment: layout.NE}.Layout(gtx,
+				layout.Stacked(func(gtx C) D {
+					gtx.Constraints.Min.X = gtx.Constraints.Max.X
+					return layout.UniformInset(12).Layout(gtx, t.CodeLines(code))
+				}),
+				layout.Stacked(func(gtx C) D {
+					return layout.Inset{Top: 6, Right: 8}.Layout(gtx, func(gtx C) D { return action(gtx, i, code) })
+				}),
+			)
+		})
+	})
 }
 
 // MarkdownBlock draws one block; size is the body text size.
@@ -333,12 +383,7 @@ func (t *Theme) MarkdownBlock(gtx C, size unit.Sp, b MDBlock) D {
 	case MDQuote:
 		return layout.Inset{Top: 2, Bottom: 2}.Layout(gtx, func(gtx C) D { return Ruled(gtx, t.BorderHi, body(t.Muted)) })
 	case MDCode:
-		return layout.Inset{Top: 4, Bottom: 4}.Layout(gtx, func(gtx C) D {
-			gtx.Constraints.Min.X = gtx.Constraints.Max.X
-			return Bordered(gtx, t.Code, t.Border, 6, func(gtx C) D {
-				return layout.UniformInset(12).Layout(gtx, t.CodeLines(strings.Join(b.Lines, "\n")))
-			})
-		})
+		return t.codeBlock(gtx, b, 0, nil)
 	case MDTable:
 		return layout.Inset{Top: 4, Bottom: 6}.Layout(gtx, func(gtx C) D { return t.mdTable(gtx, size*93/100, b.Lines) })
 	case MDRule:

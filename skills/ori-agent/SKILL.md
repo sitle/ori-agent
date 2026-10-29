@@ -174,7 +174,7 @@ All fields optional (`oriagent.Config`):
 | `OnUpdateProject` | `func(ctx, *Project, ProjectEdit) (ProjectEdit, error)` | set: a gear on each project row opens its page (name, description, permissions, folder); returns the edit as kept |
 | `OnDeleteProject` | `func(ctx, *Project) error` | adds a confirmed remove button on the project page (not for `Permanent` projects) |
 | `ProjectFiles` | `func(*Project) []ProjectFile` | adds a Files section to the project page; called on a goroutine each time the page opens; `ProjectFile{Name, Detail, Path, Warning}`: `Warning` in red, a click opens `Path` in the preview (empty: not clickable) |
-| `Convert` | `preview.Converter` (`func(path string) (*preview.Converted, error)`) | preview of the files the pane does not read (Word, Excel…): returns `Converted{PDF, Markdown, Label}`; runs on a goroutine with a "Converting…" placeholder; nil leaves the file shown as binary; never called for text, images or PDF |
+| `Convert` | `preview.Converter` (`func(path string) (*preview.Converted, error)`) | preview of the files the pane does not read (Word, Excel…): returns `Converted{PDF, Markdown, Label}`; runs on a goroutine with a "Converting…" placeholder; nil leaves the file shown as binary; also called for `.svg` files (return a PDF to draw them; nil or an error shows their source); never for other text, images or PDF |
 | `Commands` | `[]*Command` | added to built-ins |
 | `Pages` | `[]Page` | sidebar pages |
 | `Dictation` | `Dictation` | simulated |
@@ -185,6 +185,7 @@ All fields optional (`oriagent.Config`):
 | `Panels` | `[]Panel{ID, Title, Icon, Layout func(gtx, th, tr, *Session) D}` | title-bar buttons opening a pane at the right of the chat for the session shown (replaces the preview while open); redrawn twice a second while a turn runs; `c.TogglePanel(id)` from a command |
 | `OnDeleteSession`, `DeleteSessionInfo` | `func(ctx, *Session) error`, `func(*Session) string` | "Delete session…" in the session menu and a trash button on hover in the sidebar (not for subagents or busy sessions); a dialog shows the info and asks for confirmation; deletion runs on a goroutine, the session leaves the sidebar on success |
 | `OnRewind` | `func(ctx, *Session, n int) error` | "↶ Revenir ici" on hover of the user's messages, with a confirmation; restore the app's state before the n-th user message (0-based); on success the transcript is cut there and the text goes back to the composer |
+| `OnLink` | `func(url string) error` | opens a transcript link the user clicked and confirmed in a dialog (only `http`, `https`, `mailto`); called on a goroutine; nil: the system browser (`rundll32 url.dll,FileProtocolHandler`, `open`, `xdg-open`) |
 | `Mentions` | `func(*Session, query string) []Mention` | "@word" in the composer lists `Mention{Label, Detail, Insert}` (8 max, one call per query, keep it fast); Tab/Enter inserts "@Insert " |
 | `StartView`, `SetupStep`, `Attach`, `Preview` | | startup state: `"chat"`, `"setup"`, `"profile"` or a page ID; step 1-4; files; file to preview |
 | `Width`, `Height` | `unit.Dp` | 1280×820 |
@@ -292,7 +293,9 @@ All three run on a goroutine of their own; errors stay on the form or page. `exa
 
 ## Markdown
 
-Assistant text blocks are rendered as Markdown (headings, nested and numbered lists, quotes, code blocks, tables, rules, bold, italic, inline code, links styled but not clickable); an unclosed marker while streaming stays as is. Write Markdown in `Block.Write`. The renderer is reusable: `th.Markdown(size, src)` returns a widget; lower level `ui.ParseMarkdown`, `th.MarkdownBlock`, `ui.ParseInline`, `th.RichText`, `ui.PlainInline`.
+Assistant text blocks are rendered as Markdown (headings, nested and numbered lists, quotes, code blocks, tables, rules, bold, italic, inline code, links); an unclosed marker while streaming stays as is. Write Markdown in `Block.Write`. Links (`[text](url)` and bare `http(s)://` addresses) are clickable and open after a confirmation dialog (see `OnLink`). Transcript text cannot be selected: each answer and each user message shows "Copy" on hover (copies the Markdown source), and each code block of an answer has a "Copy" button in its corner. Nothing to configure.
+
+The renderer is reusable: `th.Markdown(size, src)` returns a widget; `th.MarkdownWith(size, src, ui.MDOptions{CodeAction: func(gtx, i, code) D})` adds a widget in the corner of each code block; `th.OpenLink func(url)` receives clicked links (nil: links only colored; see `ui.BareURL(word)`, `Span.URL`); lower level `ui.ParseMarkdown`, `th.MarkdownBlock`, `ui.ParseInline`, `th.RichText`, `ui.PlainInline`.
 
 ## Translations
 
