@@ -13,7 +13,7 @@
 - Une fenêtre complète : barre de titre, arborescence projets → sessions → sous-agents, fil de conversation, zone de saisie.
 - Des projets avec leur propre dossier et leurs autorisations, que l'utilisateur crée, modifie et supprime depuis la barre latérale (votre application décide de ce que cela fait sur le disque).
 - Un fil riche : réponses en Markdown, réflexion du modèle en streaming, appels d'outils dépliables, listes de tâches, bouton Stop.
-- Une palette de commandes `/`, extensible avec vos propres commandes.
+- Une palette de commandes `/`, extensible avec vos propres commandes, et la flèche haut pour rappeler ce qui a été envoyé.
 - Un aperçu de documents à droite : Markdown, code, PDF et images.
 - Des pièces jointes, une dictée vocale (moteur à brancher), un minuteur Pomodoro.
 - Des pages Configuration et Profil, dont votre application enregistre les valeurs (réglages, profil, connexion et déconnexion), et vos propres pages.

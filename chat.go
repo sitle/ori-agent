@@ -227,6 +227,9 @@ func (a *App) message(gtx C, m *Message) D {
 					return D{}
 				}
 				return layout.Inset{Top: 8, Left: 3}.Layout(gtx, func(gtx C) D {
+					if m.Markdown {
+						return ui.Ruled(gtx, th.BorderHi, th.Markdown(14, m.Output))
+					}
 					return ui.Ruled(gtx, th.BorderHi, th.CodeLines(m.Output))
 				})
 			}),

@@ -215,12 +215,15 @@ oriagent.Run(oriagent.Config{
 	Name: "export",           // typed as /export
 	Args: "<file>",           // "<x>" required: picking completes instead of running; "[x]" optional
 	Desc: "cmd.export.desc",  // key or plain text
+	Markdown: true,           // optional: output drawn as Markdown (titles, lists, links); default fixed-width lines
 	Run: func(c *oriagent.Ctl, args string) string {
 		// return text to log in the transcript, "" for nothing
 		return c.T("cmd.export.done", args)
 	},
 }
 ```
+
+Always name the fields of a `Command` literal: new fields may be added. In the palette, a full command name comes before the commands it prefixes (Enter on `/model` runs `/model`, not `/models`). In an empty composer, Up and Down recall what was sent (messages and commands, 100 at most, for the life of the app); nothing to configure.
 
 `Ctl` methods: `Session()`, `Sessions()`, `Projects()`, `Commands()`, `WorkDir()` (the current session's project folder), `NewSession()`, `NewSessionIn(p)`, `Clear()`, `RunTurn(prompt string, fn TurnFunc) error` (nil fn = configured agent; error if the session is busy), `Open(path) error`, `PickFiles()`, `Notify(msg)`, `Show(view)`, `Models()`, `Model()`, `SetModel(i)`, `SetModels(ms)`, `User()`, `SetUser(u)`, `Dark()`, `SetDark(bool)`, `Settings()`, `SetThinking(bool)`, `Locale()`, `Locales()`, `SetLocale(l) error`, `LanguageName(l)`, `T(key, args...)`, `ToggleSidebar()`, `ToggleVoice()`, `Pomodoro()`.
 

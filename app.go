@@ -43,6 +43,7 @@ type App struct {
 	toast    ui.Toast
 	modes    modeState
 	mention  mentionState
+	history  inputHistory // what was sent, recalled by the arrows
 	panels   panelState
 	del      deleteState
 	link     linkState
@@ -279,6 +280,7 @@ func (a *App) setModels(ms []Model) {
 func (a *App) setDark(dark bool) { a.th.SetDark(dark) }
 
 func (a *App) frame(gtx C) {
+	a.handleHistory(gtx)
 	a.handlePalette(gtx)
 	a.handleMentions(gtx)
 	a.handlePanels(gtx)
@@ -491,6 +493,7 @@ func (a *App) onSubmit() {
 	}
 	a.editor.SetText("")
 	a.attachments = nil
+	a.remember(txt)
 	if s.Busy {
 		// Sent while the agent works: given to it at its next step.
 		a.queue(s, txt, atts)

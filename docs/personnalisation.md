@@ -76,7 +76,14 @@ Chaque commande est un `*oriagent.Command` :
 
 - `Args` entre chevrons (`<x>`) indique un argument obligatoire : choisir la commande dans la palette la complète au lieu de l'exécuter. Entre crochets (`[x]`), l'argument est facultatif.
 - Le texte renvoyé par `Run` s'affiche dans le fil ; une chaîne vide n'affiche rien.
+- Ce texte s'affiche en police à chasse fixe, qui garde les alignements. Avec `Markdown: true`, il est dessiné en Markdown : titres, listes, gras, liens cliquables.
 - `Run` s'exécute dans le fil de l'interface : les traitements longs passent par `c.RunTurn` ou par une goroutine.
+
+La commande `/about` de l'exemple Anna rend ainsi un titre, une liste et un lien :
+
+![La sortie Markdown de /about dans le fil](images/commande-markdown.png)
+
+Dans une zone de saisie vide, la flèche haut rappelle les messages et commandes envoyés, comme dans un terminal ; la flèche bas revient jusqu'à une saisie vide. Rien à configurer.
 
 Ce que `Ctl` permet :
 

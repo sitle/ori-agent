@@ -15,26 +15,29 @@ import (
 // Command is a slash command. Desc and Args may be translation keys. Args is
 // a usage hint shown in the palette: "<x>" means required (picking the
 // command only completes it), "[x]" optional. Run returns the text logged
-// in the transcript ("" logs nothing).
+// in the transcript ("" logs nothing); with Markdown, that text is drawn
+// as Markdown (titles, lists, bold, links), else as fixed-width lines,
+// which keep their alignment.
 type Command struct {
 	Name, Args, Desc string
 	Run              func(c *Ctl, args string) string
+	Markdown         bool
 }
 
 func builtinCommands(cfg Config) []*Command {
 	cmds := []*Command{
-		{"help", "", "cmd.help.desc", func(c *Ctl, _ string) string {
+		{Name: "help", Args: "", Desc: "cmd.help.desc", Run: func(c *Ctl, _ string) string {
 			var b strings.Builder
 			for _, x := range c.Commands() {
 				fmt.Fprintf(&b, "%-10s %s\n", "/"+x.Name, c.T(x.Desc))
 			}
 			return strings.TrimRight(b.String(), "\n")
 		}},
-		{"new", "", "cmd.new.desc", func(c *Ctl, _ string) string { c.NewSession(); return "" }},
-		{"clear", "", "cmd.clear.desc", func(c *Ctl, _ string) string { c.Clear(); return c.T("cmd.clear.done") }},
-		{"compact", "cmd.compact.args", "cmd.compact.desc", cmdCompact},
-		{"model", "cmd.model.args", "cmd.model.desc", cmdModel},
-		{"open", "cmd.open.args", "cmd.open.desc", func(c *Ctl, args string) string {
+		{Name: "new", Args: "", Desc: "cmd.new.desc", Run: func(c *Ctl, _ string) string { c.NewSession(); return "" }},
+		{Name: "clear", Args: "", Desc: "cmd.clear.desc", Run: func(c *Ctl, _ string) string { c.Clear(); return c.T("cmd.clear.done") }},
+		{Name: "compact", Args: "cmd.compact.args", Desc: "cmd.compact.desc", Run: cmdCompact},
+		{Name: "model", Args: "cmd.model.args", Desc: "cmd.model.desc", Run: cmdModel},
+		{Name: "open", Args: "cmd.open.args", Desc: "cmd.open.desc", Run: func(c *Ctl, args string) string {
 			if args == "" {
 				return c.T("cmd.open.usage")
 			}
@@ -43,22 +46,22 @@ func builtinCommands(cfg Config) []*Command {
 			}
 			return c.T("cmd.open.done", args)
 		}},
-		{"usage", "", "cmd.usage.desc", cmdUsage},
-		{"status", "", "cmd.status.desc", cmdStatus},
-		{"lang", "cmd.lang.args", "cmd.lang.desc", cmdLang},
-		{"sidebar", "", "cmd.sidebar.desc", func(c *Ctl, _ string) string { c.ToggleSidebar(); return "" }},
+		{Name: "usage", Args: "", Desc: "cmd.usage.desc", Run: cmdUsage},
+		{Name: "status", Args: "", Desc: "cmd.status.desc", Run: cmdStatus},
+		{Name: "lang", Args: "cmd.lang.args", Desc: "cmd.lang.desc", Run: cmdLang},
+		{Name: "sidebar", Args: "", Desc: "cmd.sidebar.desc", Run: func(c *Ctl, _ string) string { c.ToggleSidebar(); return "" }},
 	}
 	if !cfg.Disable.Attachments {
-		cmds = append(cmds, &Command{"upload", "", "cmd.upload.desc", func(c *Ctl, _ string) string { c.PickFiles(); return "" }})
+		cmds = append(cmds, &Command{Name: "upload", Args: "", Desc: "cmd.upload.desc", Run: func(c *Ctl, _ string) string { c.PickFiles(); return "" }})
 	}
 	if !cfg.Disable.Voice {
-		cmds = append(cmds, &Command{"voice", "", "cmd.voice.desc", func(c *Ctl, _ string) string { c.ToggleVoice(); return "" }})
+		cmds = append(cmds, &Command{Name: "voice", Args: "", Desc: "cmd.voice.desc", Run: func(c *Ctl, _ string) string { c.ToggleVoice(); return "" }})
 	}
 	if !cfg.Disable.Pomodoro {
-		cmds = append(cmds, &Command{"pomodoro", "[start|pause|reset|skip]", "cmd.pomodoro.desc", cmdPomodoro})
+		cmds = append(cmds, &Command{Name: "pomodoro", Args: "[start|pause|reset|skip]", Desc: "cmd.pomodoro.desc", Run: cmdPomodoro})
 	}
 	if !cfg.Disable.ThemeToggle {
-		cmds = append(cmds, &Command{"theme", "", "cmd.theme.desc", func(c *Ctl, _ string) string {
+		cmds = append(cmds, &Command{Name: "theme", Args: "", Desc: "cmd.theme.desc", Run: func(c *Ctl, _ string) string {
 			c.SetDark(!c.Dark())
 			if c.Dark() {
 				return c.T("cmd.theme.dark")
@@ -67,10 +70,10 @@ func builtinCommands(cfg Config) []*Command {
 		}})
 	}
 	if !cfg.Disable.Setup {
-		cmds = append(cmds, &Command{"config", "", "cmd.config.desc", func(c *Ctl, _ string) string { c.Show(viewSetup); return "" }})
+		cmds = append(cmds, &Command{Name: "config", Args: "", Desc: "cmd.config.desc", Run: func(c *Ctl, _ string) string { c.Show(viewSetup); return "" }})
 	}
 	if !cfg.Disable.Profile {
-		cmds = append(cmds, &Command{"profile", "", "cmd.profile.desc", func(c *Ctl, _ string) string { c.Show(viewProfile); return "" }})
+		cmds = append(cmds, &Command{Name: "profile", Args: "", Desc: "cmd.profile.desc", Run: func(c *Ctl, _ string) string { c.Show(viewProfile); return "" }})
 	}
 	return cmds
 }
@@ -184,16 +187,19 @@ func (a *App) findCommand(name string) *Command {
 
 // matchCommands returns prefix matches first, then other substring matches.
 func (a *App) matchCommands(filter string) []*Command {
-	var pre, sub []*Command
+	var exact, pre, sub []*Command
 	for _, c := range a.commands {
 		switch {
+		case c.Name == filter:
+			// First: Enter on a full name (typed or recalled) runs it.
+			exact = append(exact, c)
 		case strings.HasPrefix(c.Name, filter):
 			pre = append(pre, c)
 		case strings.Contains(c.Name, filter) || strings.Contains(strings.ToLower(a.t(c.Desc)), filter):
 			sub = append(sub, c)
 		}
 	}
-	return append(pre, sub...)
+	return append(append(exact, pre...), sub...)
 }
 
 func (a *App) runCommand(line string) {
@@ -203,13 +209,14 @@ func (a *App) runCommand(line string) {
 	if args != "" {
 		shown += " " + args
 	}
+	a.remember(shown)
 	c := a.findCommand(name)
 	if c == nil {
 		a.cur.add(&Message{Kind: KindCommand, Text: shown, Output: a.t("cmd.unknown")})
 		return
 	}
 	if out := c.Run(&Ctl{a}, args); out != "" {
-		a.cur.add(&Message{Kind: KindCommand, Text: shown, Output: out})
+		a.cur.add(&Message{Kind: KindCommand, Text: shown, Output: out, Markdown: c.Markdown})
 	}
 }
 

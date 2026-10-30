@@ -4,6 +4,22 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [0.12.0] - 2026-10-29
+
+### Ajouté
+
+- `Command.Markdown` : la sortie de la commande est dessinée en Markdown (titres, listes, gras, liens) au lieu de lignes à chasse fixe, gardées par défaut pour les sorties alignées comme `/help`.
+- Exemple Anna : commande `/about`, dont la sortie est en Markdown, et les flèches de l'historique dans la page « Raccourcis ».
+- Historique de la saisie : la flèche haut rappelle les messages et commandes envoyés, du plus récent au plus ancien, et la flèche bas revient jusqu'à une saisie vide, comme dans un terminal. Les flèches ne rappellent que si la saisie est vide ou montre une entrée rappelée : dans un texte en cours, elles déplacent toujours le curseur. 100 entrées au plus, pour la durée de l'application ; une répétition n'est gardée qu'une fois.
+
+### Corrigé
+
+- Palette des commandes : un nom de commande complet passe avant les commandes qui commencent de la même façon, si bien qu'Entrée sur `/model` lance `/model` et non `/models`.
+
+### Modifié
+
+- `Command` a un champ de plus : une commande écrite sans noms de champs (`&Command{"nom", "", "desc", run}`) ne compile plus. Nommez les champs (`Name:`, `Desc:`, `Run:`…), comme le font désormais les commandes intégrées.
+
 ## [0.11.0] - 2026-10-28
 
 ### Ajouté
@@ -190,7 +206,8 @@ Première version publique.
 - Documentation en français dans `docs/` : prise en main, écrire un agent, personnalisation, langues, composants, architecture.
 - Documentation pour les assistants de code : skill `skills/ori-agent/SKILL.md`, `llms.txt`, `AGENTS.md`.
 
-[Non publié]: https://github.com/sitle/ori-agent/compare/v0.11.0...HEAD
+[Non publié]: https://github.com/sitle/ori-agent/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/sitle/ori-agent/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/sitle/ori-agent/compare/v0.10.1...v0.11.0
 [0.10.1]: https://github.com/sitle/ori-agent/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/sitle/ori-agent/compare/v0.9.0...v0.10.0

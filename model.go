@@ -51,6 +51,7 @@ type Message struct {
 	FilePath string   // file behind a tool call: a click previews it
 	Error    bool     // KindNotice: an error rather than an interruption
 	Expanded bool     // tool output or reasoning shown
+	Markdown bool     // KindCommand: Output is Markdown (Command.Markdown)
 	// With HasDiff, a tool call shows the change from DiffOld to DiffNew
 	// instead of its output (ToolCall.Diff).
 	HasDiff          bool

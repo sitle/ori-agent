@@ -84,7 +84,7 @@ func main() {
 		AppName:  "Anna Assistant",
 		Logo:     logo,
 		Agent:    agent,
-		Commands: append(agent.Commands(), loginCommand), // /review, /init, /think, /login
+		Commands: append(agent.Commands(), loginCommand, aboutCommand), // /review, /init, /think, /login, /about
 		Pages:    []oriagent.Page{shortcutsPage},
 		Panels:   []oriagent.Panel{supervisionPanel}, // supervision.go
 

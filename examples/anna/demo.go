@@ -126,6 +126,15 @@ var loginCommand = &oriagent.Command{
 	},
 }
 
+// aboutCommand logs a Markdown output (Command.Markdown): a title, a list
+// and a link, drawn as in the assistant's answers.
+var aboutCommand = &oriagent.Command{
+	Name:     "about",
+	Desc:     "about.desc",
+	Markdown: true,
+	Run:      func(c *oriagent.Ctl, _ string) string { return c.T("about.text") },
+}
+
 func demo(title string) *oriagent.Session {
 	return &oriagent.Session{Title: title, Messages: []*oriagent.Message{oriagent.UserMsg(title), oriagent.TextMsg("Demo session.")}}
 }
@@ -170,6 +179,10 @@ var translations = map[string]map[string]string{
 		"key.slash":          "Ouvrir la palette de commandes",
 		"key.paletteNav":     "Naviguer, compléter, fermer la palette",
 		"key.sidebar":        "Afficher ou masquer la barre latérale",
+		"key.historyKeys":    "↑ ↓ (saisie vide)",
+		"key.history":        "Rappeler les messages et commandes envoyés",
+		"about.desc":         "À propos d'Anna",
+		"about.text":         "### Anna\n\nLa démonstration d'**ori-agent** : un agent simulé, sans modèle ni réseau.\n\n- `/review` et `/init` lancent un tour de l'agent\n- `/think` active ou coupe le raisonnement étendu\n- `/login` simule une connexion\n\nLe code est sur [GitHub](https://github.com/sitle/ori-agent).",
 		"model.enterprise":   "Réservé aux comptes de l'administration, après connexion.",
 		"login.desc":         "Se connecter avec le compte de l'administration (simulé)",
 		"login.tool":         "Authentification réussie.",
@@ -192,6 +205,10 @@ var translations = map[string]map[string]string{
 		"key.slash":          "Open the command palette",
 		"key.paletteNav":     "Navigate, complete, close the palette",
 		"key.sidebar":        "Show or hide the sidebar",
+		"key.historyKeys":    "↑ ↓ (empty composer)",
+		"key.history":        "Recall the messages and commands sent",
+		"about.desc":         "About Anna",
+		"about.text":         "### Anna\n\nThe **ori-agent** demo: a simulated agent, with no model and no network.\n\n- `/review` and `/init` start a turn of the agent\n- `/think` turns extended thinking on or off\n- `/login` simulates a sign-in\n\nThe code is on [GitHub](https://github.com/sitle/ori-agent).",
 		"model.enterprise":   "For administration accounts, after signing in.",
 		"login.desc":         "Sign in with the administration account (simulated)",
 		"login.tool":         "Authentication succeeded.",
@@ -213,6 +230,7 @@ var shortcutsPage = oriagent.Page{
 			{tr.T("key.shiftEnter"), tr.T("key.newline")},
 			{"/", tr.T("key.slash")},
 			{tr.T("key.palette"), tr.T("key.paletteNav")},
+			{tr.T("key.historyKeys"), tr.T("key.history")},
 			{"Ctrl + B", tr.T("key.sidebar")},
 		}
 		return th.Section(gtx, tr.T("shortcuts.keyboard"), tr.T("shortcuts.desc"), func(gtx layout.Context) layout.Dimensions {
